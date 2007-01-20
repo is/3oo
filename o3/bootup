@@ -1,0 +1,31 @@
+#!python2.5
+
+import os
+
+from o3grid.service import BaseService, EchoService
+from o3grid.hub import HubService
+from o3grid.baseserver import ServerBase
+from o3grid import config
+from o3grid.utility import D
+
+CONFIG = 'config.o3'
+
+def main():
+	global CONFIG
+	if os.environ.has_key('O3_CONFIG'):
+		CONFIG = os.environ['O3_CONFIG']
+	elif os.environ.has_key('O3_NAME'):
+		CONFIG = os.environ['O3_NAME'] + ".o3"
+
+	# Load Base Server
+	C = config.Load(CONFIG)
+	S = ServerBase()
+	S.setup(C)
+	S.setupServices()
+
+
+	S.activate()
+	S.serveForever()
+
+if __name__ == '__main__':
+	main()

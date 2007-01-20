@@ -1,0 +1,38 @@
+#!python2.5
+
+import os
+
+from o3grid.service import BaseService, EchoService
+from o3grid.hub import HubService
+from o3grid.baseserver import ServerBase
+from o3grid import config
+from o3grid.utility import D
+from o3grid.protocol import O3Channel
+from o3grid import constants as CC
+
+def readfile(fn):
+	fin = file(fn, 'r')
+	contents = fin.read()
+	fin.close()
+	return contents.strip()
+
+def main():
+	NODEID = readfile('/is/app/o3/etc/NODEID')
+	AUTOS = readfile('/is/app/o3/etc/AUTOS')
+
+	channel = O3Channel()
+	channel.connect((AUTOS, CC.DEFAULT_PORT))
+	res = channel(CC.SVC_AUTOCONFIG, 'AUTOCONFIG0', 'o3', NODEID)
+	channel.close()
+	C = res[2]
+	del res
+
+	S = ServerBase()
+	S.setup(C)
+	S.setupServices()
+
+	S.activate()
+	S.serveForever()
+
+if __name__ == '__main__':
+	main()
