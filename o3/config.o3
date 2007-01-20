@@ -1,0 +1,61 @@
+#!/usr/bin/python
+
+from o3grid import constants as CC
+BASE = '/is/app/o3'
+
+def B(p, b = BASE):
+	return '%s/%s' % (b, p)
+
+common = {
+	'name': 'dx44',
+	'id': 'p-dx44',
+	'zone': 'o3dev',
+	'entry': ('10.6.32.197', CC.DEFAULT_PORT),
+	'base': BASE,
+	'names': {
+		'HUB': ('10.6.32.197', CC.DEFAULT_PORT),
+		'NAMES': ('10.6.32.197', CC.DEFAULT_PORT),
+		'SCHEDULE': ('10.6.32.197', CC.DEFAULT_PORT),
+		'WAREHOUSE': ('10.6.32.197', CC.DEFAULT_PORT),
+		'RESULT': ('10.4.170.220', CC.DEFAULT_PORT), # p-cn39
+	},
+	'ulog': {
+		'addr': ('10.6.32.197', CC.DEFAULT_LOG_PORT)
+	}
+	#'debug': 'call',
+}
+
+hub = {
+	'paths': {
+		'codebase': B('env/codebase'),
+		'scriptbase': B('env/codebase'),
+	}
+}
+
+space = {
+	'path': B('tmp/storage'),
+}
+
+workspace = {
+	'base': B('tmp/run'),
+	'respath': '/data1/o3res',
+	'tag': 'center',
+}
+
+autoconfig = {
+	'policy': 'o3grid.autoconfigpolicy',
+}
+
+warehouse = {
+	'dburl': 'mysql://o3:o3password@o3db/o3',
+}
+_C = {
+	'common': common,
+	'hub': hub,
+	'space': space,
+	'workspace': workspace,
+	'names': None,
+	'autoconfig': autoconfig,
+	'schedule': None,
+	'warehouse': warehouse,
+}
