@@ -19,7 +19,7 @@ from service import ServiceBase
 from protocol import O3Channel, O3Call
 from warehousedb import WarehouseDB
 
-from utility import appendinmap, removeinmap, leninmap
+from utility import appendinmap, removeinmap, leninmap, FileLogger
 from utility import sizeK, RoomLocation, RoomLocationToTuple
 from utility import D as _D, D2 as _D2, DE as _E
 
@@ -43,6 +43,7 @@ class WarehouseService(ServiceBase):
 		self.server = server
 		self.lock = threading.Lock()
 		self.disableCheck = False
+		self.entityLog = FileLogger('../log/O3Entity')
 	
 	def setup(self, cf):
 		cf = cf['warehouse']
@@ -132,6 +133,7 @@ class WarehouseService(ServiceBase):
 			return False
 
 		shadows = self.db.shadowByEntity.get(entity.id, '')
+
 		if len(shadows) >= entity.mirrors:
 			if len([s for s in shadows if 
 				s.state == CC.SHADOW_STATE_OK or
@@ -243,6 +245,9 @@ class WarehouseService(ServiceBase):
 		_D2('entity mirror {%d=R%d-E%d,name:%s,from:%s/%s,to:%s/%s}' % (
 			dst.id, droom.id, entity.id, entity.name,
 			srcnode, srclabel, droom.node, droom.label))
+		self.entityLog.L('SM E%d=S%d %s:%s/%s %s/%s' % (
+			entity.id, dst.id, droom.node, droom.label, entity.name,
+			srcnode, srclabel))
 
 		# TODO Error handler
 		S = O3Channel().connect(dentry)
@@ -513,6 +518,9 @@ class WarehouseService(ServiceBase):
 
 			_D('add entity {%d=%s:%s} size=%.2fM' % (
 				res.id, einfo['node'], einfo['path'], res.size / 1024.0 / 1024))
+			self.entityLog.L('EA E%d=%s %.2fm' % (res.id, res.name, res.size / 1024 / 1024))
+				
+				
 			self.arrange_(task = 'MORESHADOW', entity = res)
 			return (CC.RET_OK, self.SVCID, res.id)
 
@@ -652,7 +660,6 @@ class WarehouseService(ServiceBase):
 				pass
 			
 			return ((CC.RET_OK, self.SVCID, 0), 'dontlog')
-	
 	# ---
 	def exportROOMADVERT(self, channel, nodeid, entry, starttime, tasks, rooms):
 		with self.lock:
