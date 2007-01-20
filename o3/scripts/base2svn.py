@@ -38,6 +38,8 @@ def ScanDir(source, target, path = ''):
 		if os.path.islink(aspath):
 			continue
 		elif os.path.isfile(aspath):
+			if rpath.endswith('.pyc'):
+				continue
 			if not os.path.exists(atpath):
 				os.link(aspath, atpath)
 				L('link %s' % rpath)
