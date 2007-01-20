@@ -1,0 +1,16 @@
+#!/usr/bin/python
+
+codebase = {
+	'name': 'isgrid0',
+	'version': '0.0.0.1',
+	
+	'files': [
+		'isgrid0/__init__.py',
+		'isgrid0/isgrid0.py',
+	],
+
+	'modules': [
+		'isgrid0.isgrid0',
+		'isgrid0',
+	],
+}

@@ -1,0 +1,16 @@
+#!/usr/bin/python
+
+codebase = {
+	'name': 'oneday01',
+	'version': '0.0.0.1',
+	
+	'files': [
+		'oneday01/__init__.py',
+		'oneday01/oneday01.py',
+	],
+
+	'modules': [
+		'oneday01.oneday01',
+		'oneday01',
+	],
+}

@@ -1,0 +1,16 @@
+#!/usr/bin/python
+
+codebase = {
+	'name': 'uipreducer01',
+	'version': '0.0.0.1',
+	
+	'files': [
+		'uipreducer01/__init__.py',
+		'uipreducer01/uipreducer01.py',
+	],
+
+	'modules': [
+		'uipreducer01.uipreducer01',
+		'uipreducer01',
+	],
+}
