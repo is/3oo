@@ -6,7 +6,7 @@
 #   Base server module
 #
 
-BASESERVER_VERSION =  '0.0.2.1'
+BASESERVER_VERSION =  '0.0.2.2'
 
 
 import threading
@@ -19,7 +19,8 @@ import constants as CC
 import fastmap
 
 from service import BaseService
-from protocol import CreateMessage0, GetMessageFromSocket, CreateMessage, O3Channel
+from protocol import CreateMessage0, GetMessageFromSocket, CreateMessage
+from protocol import O3Call, O3Channel
 from utility import D as _D, DE as _E, D2 as _D2
 from debuginfo import SVCIDToStr
 
@@ -324,10 +325,10 @@ class ServerBase(object):
 		if self.localnames.has_key(name):
 			return self.localnames[name]
 
-		channel = O3Channel()
-		channel.connect(self.namesaddr)
-		res = channel.call0(CC.SVC_NAMES, 'RESOLV', name)
-		channel.close()
+		#channel = O3Channel()
+		#channel.connect(self.namesaddr)
+		res = O3Call(self.namesaddr, CC.SVC_NAMES, 'RESOLV', name)
+		#channel.close()
 		return res[2]
 	
 	# ---
