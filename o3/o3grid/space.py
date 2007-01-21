@@ -8,7 +8,7 @@
 
 from __future__ import with_statement
 
-SPACE_VERSION = '0.0.2.17'
+SPACE_VERSION = '0.0.2.18'
 
 import time, os, threading
 import zlib
@@ -187,7 +187,7 @@ class SpaceService(ServiceBase):
 		if entry:
 			S = O3Channel().connect(entry)
 			res = S(CC.SVC_WAREHOUSE, 'ROOMADVERT', 
-				nodeid, entry, starttime, tasks, rooms)
+				nodeid, self.server.entry, starttime, tasks, rooms)
 			S.close()
 
 	# ---
