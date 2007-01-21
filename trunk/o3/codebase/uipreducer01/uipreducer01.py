@@ -6,6 +6,8 @@ from o3grid.protocol import O3Channel, O3Space, O3Call
 from o3grid.utility import cout, D as _D, D2 as _D2, DE as _E
 from fastmap import inetstr2int as inet2int, _dumps, _loads
 
+import o3lib.base
+
 VERSION = "0.0.0.0"
 REVISION = "$Revision: 1.4 $"
 CODEBASE = 'uipreducer01'
@@ -195,7 +197,7 @@ class JOBBase(object):
 		self.info['result'] = {
 			'resultid': self.info['jobid'],
 			'location': self.workspace.server.entry,
-			'insize': scanner.bytes / 1024.0 / 1024,
+			'insize0': scanner.bytes / 1024.0 / 1024,
 			'debuginfo': '%s at %s - %.2fMb/%.2fs' % (
 				'-'.join(self.info['jobid'].split('-', 2)[:2]),
 				self.workspace.server.id,
@@ -308,6 +310,7 @@ class JOBIPDayAll(JOBBase):
 		lognames = P['lognames']
 		logfiles = P['logfiles']
 
+		restext = []
 		for logname in lognames:
 			f1 = logfiles[logname]
 			f2 = logfiles["union-" + logname]
@@ -317,9 +320,17 @@ class JOBIPDayAll(JOBBase):
 			ip2 = _loads(c2)
 			cout('%s: ORIGIN:%d UNION:%d ORIGIN-UNION:%d/%d' % (
 				logname, len(ip1), len(ip2), len(ip1 - ip2), len(ip1) - len(ip2)))
+			restext.append('%s: ORIGIN:%d UNION:%d ORIGIN-UNION:%d/%d' % (
+				logname, len(ip1), len(ip2), len(ip1 - ip2), len(ip1) - len(ip2)))
 			cout('-JOB-OUT-RESULT %s %s: ORIGIN:%d UNION:%d ORIGIN-UNION:%d/%d' % (
 				P['logdate'], logname, len(ip1), len(ip2), len(ip1 - ip2), len(ip1) - len(ip2)))
+		
+		restext.sort()
 
+		year,sep,date = P['logdate'].partition('.')
+		resname = 'uip01/%s/%s' % (year, date)
+		O3 = o3lib.base.O3(self.workspace)
+		O3.saveResult(resname, '\n'.join(restext))
 		self.info['result'] = 0
 	
 # ----- mission control class
@@ -453,7 +464,7 @@ class MissionIPReducer(job.Mission):
 			for j in js: j.fire()
 		lastJob.fire()
 
-		self.size0 = 0
+		self.insize0 = 0
 	
 	def jobFinished(self, job, params):
 		if params == None:
@@ -469,12 +480,12 @@ class MissionIPReducer(job.Mission):
 		if job.id.startswith('H2-'):
 			logname = job.id.split('-')[2]
 			self.hourIPS[logname].append((P['location'], P['resultid']))
-			self.size0 += P['insize']
+			self.insize0 += P['insize0']
 		if job.id.startswith('H1-'):
 			self.unionHour.append((P['location'], P['resultid']))
-			self.size0 += P['insize']
+			self.insize0 += P['insize0']
 		if job.id.startswith('Z0-'):
-			cout('-MISSION-FINISHED- %.2fM in %.2fs' % (self.size0, time.time() - self.starttime))
+			cout('-MISSION-FINISHED- %.2fM in %.2fs' % (self.insize0, time.time() - self.starttime))
 
 def generateJob(job, workspace):
 	classname = job['class']
