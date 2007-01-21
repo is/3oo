@@ -17,6 +17,7 @@ def IsSameFile(path1, path2):
 def L(str, chr = '|'):
 	print '%s %s' % (chr, str)
 
+# ===
 def ScanDir(source, target, path = ''):
 	entries = os.listdir('%s/%s' % (source, path))
 	entries.sort()
@@ -57,4 +58,33 @@ def ScanDir(source, target, path = ''):
 			ScanDir(source, target, rpath)
 			continue
 
+def ScanDir2(source, target, path = ''):
+	entries = os.listdir('%s/%s' % (source, path))
+	entries.sort()
+
+	for e in entries:
+		if e == '.svn':
+			continue
+
+		if path == '':
+			rpath = e
+		else:
+			rpath = '/'.join((path, e))
+
+		aspath = '/'.join((source, rpath))
+		atpath = '/'.join((target, rpath))
+	
+		if os.path.isdir(aspath):
+			ScanDir2(source, target, rpath)
+			if not os.path.exists(atpath):
+				L('rmdir %s' % rpath)
+			continue
+		else: 
+			if not os.path.exists(atpath):
+				L('remove %s' % rpath)
+				os.unlink(aspath)
+				continue
+
+
 ScanDir(SOURCE, TARGET)
+ScanDir2(TARGET, SOURCE)
