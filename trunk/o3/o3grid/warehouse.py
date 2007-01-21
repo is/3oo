@@ -198,8 +198,6 @@ class WarehouseService(ServiceBase):
 		entity.state = CC.ENTITY_STATE_DROPED
 		del self.db.entityByName[entity.name]
 		self.db.flush()
-
-		self.entityLog.L('ED %d=%s' % (entity.id, entity.name))
 		return res
 
 	def dropRoom_(self, roomid): pass
