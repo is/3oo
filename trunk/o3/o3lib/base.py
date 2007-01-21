@@ -5,8 +5,7 @@
 from o3grid import constants as CC
 from o3grid.protocol import O3Call, O3Channel
 
-__VERSION__ = '0.0.0.1'
-__REVISION__ = '$REVISION$'
+__VERSION__ = '0.0.0.2'
 
 
 class O3(object):
@@ -14,9 +13,9 @@ class O3(object):
 		self.ws = workspace
 		self.localnames = {}
 	
-	def saveResult(self, name, value):
+	def saveResult(self, name, value, resnodename = 'RESULT'):
 		respoint = self.localnames.get(
-			'RESULT', self.ws.server.resolv('RESULT'))
+			resnodename, self.ws.server.resolv(resnodename))
 		res = O3Call(respoint,
 			CC.SVC_SPACE, 'RESULTPUT', name, value)
 		if res[0] == CC.RET_OK:
@@ -25,9 +24,9 @@ class O3(object):
 			return -1
 
 		
-	def loadResult(self, name):
+	def loadResult(self, name, resnodename = 'RESULT'):
 		respoint = self.localnames.get(
-			'RESULT', self.ws.server.resolv('RESULT'))
+			resnodename, self.ws.server.resolv(resnodename))
 		res = O3Call(respoint,
 			CC.SVC_SPACE, 'RESULTGET', name)
 
