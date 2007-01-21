@@ -182,6 +182,7 @@ class ScheduleCore(threading.Thread):
 				queue = commonQueue;
 			if not queue:
 				continue
+			queue.sort(key = operator.attrgetter('jobid'))
 			job = queue.pop(0)
 			self.submitJobToNode_(node, job)
 
@@ -265,8 +266,9 @@ class ScheduleCore(threading.Thread):
 			self.schedule_()
 
 	def pushReadyJobsToWaitQueue_(self, mission):
-		for job in sorted(mission.unfinished.values(), 
-			key = operator.attrgetter('id')):
+		#for job in sorted(mission.unfinished.values(), 
+		#	key = operator.attrgetter('jobid')):
+		for job in mission.unfinished.values():
 			if len(job.prev) == 0:
 				self.pushJobToWaitQueue_(mission, job)
 

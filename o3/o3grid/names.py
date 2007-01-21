@@ -22,6 +22,14 @@ class NameService(ServiceBase):
 		self.lock = threading.Lock()
 		self.names = {}
 	
+	def setup(self, conf):
+		cf = conf.get('names', None)
+		if not cf:
+			return
+
+		if cf.has_key('names'):
+			self.names.update(cf['names'])
+
 	def exportRESOLV(self, channel, name):
 		return (CC.RET_OK, self.SVCID, self.names.get(name))
 			
