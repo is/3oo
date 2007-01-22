@@ -9,7 +9,6 @@ from fastmap import inetstr2int as inet2int, _dumps, _loads
 import o3lib.base
 
 VERSION = "0.0.0.0"
-REVISION = "$Revision: 1.4 $"
 CODEBASE = 'uipreducer01'
 MODULENAME = 'uipreducer01.uipreducer01'
 
