@@ -5,6 +5,7 @@ import time
 from o3grid import constants as CC
 from o3grid.protocol import O3Call
 
+import o3testmisc
 #S = O3Channel()
 #S.connect(('127.0.0.1', CC.DEFAULT_PORT))
 #res = S(CC.SVC_SCHEDULE, 'SUBMITMISSION', 
@@ -23,12 +24,18 @@ res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
 	CC.SVC_HUB, 'O3UNLOADCODEBASE', 'oneday01')
 
 
-for logname in ('uume', 'dzh', 'tt', 'itv'):
+if o3testmisc.IsDebugMission('oneday01'):
+	for logname in ('uume', 'dzh', 'tt', 'itv'):
+		res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
+			CC.SVC_SCHEDULE, 'CLEANMISSION', 'OD01-%s-%s' % (logname, dname))
 	res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
-		CC.SVC_SCHEDULE, 'CLEANMISSION', 'OD01-%s-%s' % (logname, dname))
+		CC.SVC_HUB, 'O3UNLOADCODEBASE', 'oneday01')
+	time.sleep(2)
 
-time.sleep(2)
-for logname in ('uume', 'dzh', 'tt', 'itv'):
+
+
+#time.sleep(2)
+for logname in ('dzh', 'itv', 'tt', 'uume'):
 	res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
 		CC.SVC_SCHEDULE, 'SUBMITMISSION',
 		'OD01-%s-%s' % (logname, dname),
