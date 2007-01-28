@@ -26,6 +26,13 @@ from debuginfo import SVCIDToStr
 
 VERBOSE_CALL = 1
 
+# ------
+def hostid2name(id):
+	if len(id) == 5:
+		return '%s0%s' % (id[:4], id[4])
+	elif len(id) == 7:
+		return '%s%s%s' % (id[:4], chr(ord('a') + int(id[4:6]), chr[6]))
+	return id
 
 # ====
 class TimerItem(object):
@@ -189,7 +196,7 @@ class ServerBase(object):
 			s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
 			s.connect(ulog['addr'])
 			sys.modules['o3grid.utility'].LogSetup(
-				{'socket': s, 'hostname': self.id})
+				{'socket': s, 'hostname': hostid2name(self.id)})
 	
 		threads = common.get('threadpoolsize', 5)
 		queuesize = common.get('queuesize', 300)
