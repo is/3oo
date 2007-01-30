@@ -136,27 +136,28 @@ def RemoteReader(queue, node, addr, label, name, size, entityid):
 	bs = 512000 * 8
 	try:
 		S = O3Channel().connect((addr, CC.DEFAULT_PORT))
-		res = S(CC.SVC_SPACE, 'ROOMGET2',
-			label, name, 0, size, entityid, 1024 * 1024 * 4, 1)
+		#res = S(CC.SVC_SPACE, 'ROOMGET2',
+		#	label, name, 0, size, entityid, 1024 * 1024 * 4, 1)
+		res = S(CC.SVC_SPACE, 'ROOMGET1', label, name, 0, size, entityid)
 		if res[0] != CC.RET_OK:
 			return
 
 		rest = size
 		while rest != 0:
-			#if rest > bs:
-			#	buf = S.recvAll(bs)
-			#else:
-			#	buf = S.recvAll(rest)
-			#if not buf:
-			#	break
-			#rest -= len(buf)
-			#queue.put(buf)
-			header = S.recvAll(4)
-			bs = struct.unpack('I', header)[0]
-			buf = S.recvAll(bs)
-			contents = zlib.decompress(buf)
-			rest -= len(contents)
-			queue.put(contents)
+			if rest > bs:
+				buf = S.recvAll(bs)
+			else:
+				buf = S.recvAll(rest)
+			if not buf:
+				break
+			rest -= len(buf)
+			queue.put(buf)
+			#header = S.recvAll(4)
+			#bs = struct.unpack('I', header)[0]
+			#buf = S.recvAll(bs)
+			#contents = zlib.decompress(buf)
+			#rest -= len(contents)
+			#queue.put(contents)
 
 		S.getMessage()
 		S.close()

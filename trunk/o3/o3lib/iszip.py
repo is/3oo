@@ -114,5 +114,5 @@ def DecompressFile(finame, foname):
 	fout.close()
 
 if __name__ == '__main__':
-	CompressFile('/tmp/2300', '/tmp/2300.iz')
-	DecompressFile('/tmp/2300.iz', '/tmp/2300_')
+	#CompressFile('/tmp/2300', '/tmp/2300.iz')
+	DecompressFile('/tmp/TEST.iz0', '/tmp/TEST')
