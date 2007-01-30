@@ -8,7 +8,7 @@
 
 from __future__ import with_statement
 
-SPACE_VERSION = '0.0.3.1'
+SPACE_VERSION = '0.0.3.2'
 
 import time, os, threading
 import zlib
@@ -314,45 +314,45 @@ class SpaceService(ServiceBase):
 				entityid, offset, size / 1024.0/1024, endtime - starttime))
 
 	# ---
-	def exportROOMGET2(self, channel, label, path, offset, size, entityid = 0, blocksize = 10485760, level = 4):
-		room = self.rooms.get(label, None)
-		if room == None:
-			return (CC.RET_ERROR, self.SVCID, CC.ERROR_SPACE_NO_SUCH_ROOM)
+#	def exportROOMGET2(self, channel, label, path, offset, size, entityid = 0, blocksize = 10485760, level = 4):
+#		room = self.rooms.get(label, None)
+#		if room == None:
+#			return (CC.RET_ERROR, self.SVCID, CC.ERROR_SPACE_NO_SUCH_ROOM)
+#
+#		path = '%s/%s' % (room.base, path)
+#		if not os.path.isfile(path):
+#			return (CC.RET_ERROR, self.SVCID, CC.ERROR_NO_SUCH_OBJECT)
+#
+#		if size == 0:
+#			size = FileLength(path) - offset
+#
+#		channel.send(CreateMessage(CC.RET_OK, self.SVCID, size))
+#		fin = file(path, 'r')
+#		if offset:
+#			fin.seek(offset)
+#		starttime = time.time()
+#		size0 = 0
+#
+#		try:
+#			rest = size
+#			while rest != 0:
+#				bs = min(rest, blocksize)
+#				contents = fin.read(bs)
+#				compressed = zlib.compress(contents, level)
+#				channel.sendall(ipack('I', len(compressed)))
+#				channel.sendall(compressed)
+#				rest -= len(contents)
+#				size0 += len(compressed)
+#		finally:
+#			fin.close()
+#
+#		endtime = time.time()
+#		return (
+#			(CC.RET_OK, self.SVCID, size),
+#			"E-%d -%d %.2fMB(%.2fMB)/%.2fs" % (
+#				entityid, offset, size0/1024.0/1024, size/1024.0/1024, 
+#				endtime - starttime))
 
-		path = '%s/%s' % (room.base, path)
-		if not os.path.isfile(path):
-			return (CC.RET_ERROR, self.SVCID, CC.ERROR_NO_SUCH_OBJECT)
-
-		if size == 0:
-			size = FileLength(path) - offset
-
-		channel.send(CreateMessage(CC.RET_OK, self.SVCID, size))
-		fin = file(path, 'r')
-		if offset:
-			fin.seek(offset)
-		starttime = time.time()
-		size0 = 0
-
-		try:
-			rest = size
-			while rest != 0:
-				bs = min(rest, blocksize)
-				contents = fin.read(bs)
-				compressed = zlib.compress(contents, level)
-				channel.sendall(ipack('I', len(compressed)))
-				channel.sendall(compressed)
-				rest -= len(contents)
-				size0 += len(compressed)
-		finally:
-			fin.close()
-
-		endtime = time.time()
-		return (
-			(CC.RET_OK, self.SVCID, size),
-			"E-%d -%d %.2fMB(%.2fMB)/%.2fs" % (
-				entityid, offset, size0/1024.0/1024, size/1024.0/1024, 
-				endtime - starttime))
-	
 	# ---
 	def exportROOMDROPSHADOW(self, channel, label, name):
 		room = self.rooms.get(label)
