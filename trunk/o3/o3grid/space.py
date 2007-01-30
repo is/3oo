@@ -8,11 +8,11 @@
 
 from __future__ import with_statement
 
-SPACE_VERSION = '0.0.3.2'
+SPACE_VERSION = '0.0.3.5'
 
 import time, os, threading
 import zlib
-from struct import pack as ipack
+from struct import pack as ipack, unpack as iunpack
 import constants as CC
 
 from service import ServiceBase
@@ -314,44 +314,60 @@ class SpaceService(ServiceBase):
 				entityid, offset, size / 1024.0/1024, endtime - starttime))
 
 	# ---
-#	def exportROOMGET2(self, channel, label, path, offset, size, entityid = 0, blocksize = 10485760, level = 4):
-#		room = self.rooms.get(label, None)
-#		if room == None:
-#			return (CC.RET_ERROR, self.SVCID, CC.ERROR_SPACE_NO_SUCH_ROOM)
-#
-#		path = '%s/%s' % (room.base, path)
-#		if not os.path.isfile(path):
-#			return (CC.RET_ERROR, self.SVCID, CC.ERROR_NO_SUCH_OBJECT)
-#
-#		if size == 0:
-#			size = FileLength(path) - offset
-#
-#		channel.send(CreateMessage(CC.RET_OK, self.SVCID, size))
-#		fin = file(path, 'r')
-#		if offset:
-#			fin.seek(offset)
-#		starttime = time.time()
-#		size0 = 0
-#
-#		try:
-#			rest = size
-#			while rest != 0:
-#				bs = min(rest, blocksize)
-#				contents = fin.read(bs)
-#				compressed = zlib.compress(contents, level)
-#				channel.sendall(ipack('I', len(compressed)))
-#				channel.sendall(compressed)
-#				rest -= len(contents)
-#				size0 += len(compressed)
-#		finally:
-#			fin.close()
-#
-#		endtime = time.time()
-#		return (
-#			(CC.RET_OK, self.SVCID, size),
-#			"E-%d -%d %.2fMB(%.2fMB)/%.2fs" % (
-#				entityid, offset, size0/1024.0/1024, size/1024.0/1024, 
-#				endtime - starttime))
+
+	def exportROOMGET3(self, channel, P):
+		label = P['label']
+		name = P['name']
+		offset = P.get('offset', 0)
+		wantblocks = P.get('blocks', 0)
+		entityid = P.get('entityid', 0)
+
+		room = self.rooms.get(label, None)
+		if room == None:
+			return (CC.RET_ERROR, self.SVCID, CC.ERROR_SPACE_NO_SUCH_ROOM)
+
+		path = '%s/%s' % (room.base, name)
+		
+		if not os.path.isfile(path):
+			return (CC.RET_ERROR, self.SVCID, CC_ERROR_NO_SUCH_OBJECT)
+
+		starttime = time.time()
+		size0 = 0
+		size1 = 0
+		try:
+			fin = file(path, 'rb')
+			headblock = fin.read(0x10000)
+			filehead = iunpack('4sIII4sIIIQQ4I', headblock[:64])
+			blocks = filehead[6]
+			blocksize = filehead[7]
+	
+			if wantblocks == 0:
+				wantblocks = blocks - offset
+			else:
+				wantblocks = min(blocks - offset, wantblocks)
+	
+			channel.send(CreateMessage(CC.RET_OK,self.SVCID, wantblocks))
+	
+			for i in xrange(offset, offset + wantblocks):
+				blockheadstr = headblock[64 + i * 32: 64 + i * 32 + 32]
+				blockhead = iunpack("QII4I", blockheadstr)
+				if i == offset:
+					fin.seek(blockhead[0] + 0x10000)
+				binsize = blockhead[1]
+				size0 += binsize
+				size1 += blockhead[2] # boutsize
+	
+				ccontent = fin.read(binsize)
+				channel.sendall(blockheadstr)
+				channel.sendall(ccontent)
+			endtime = time.time()
+			return ((CC.RET_OK, self.SVCID, wantblocks),
+				'E-%d -%d %.2fMB(%.2fMB)/%.2fs' % (
+					entityid, offset, size1/1024.0/1024, size0/1024.0/1024,
+					endtime - starttime))
+
+		finally:
+			fin.close()
 
 	# ---
 	def exportROOMDROPSHADOW(self, channel, label, name):
