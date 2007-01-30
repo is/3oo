@@ -30,7 +30,7 @@ def RemoteReader(queue, params):
 	S = O3Channel()
 	try:
 		S.connect(addr)
-		res = S(CC.SVC_SPACE, 'ROOMGET',
+		res = S(CC.SVC_SPACE, 'ROOMGET1',
 			label, name, 0, size, entityid)
 		if res[0] == CC.RET_ERROR:
 			return

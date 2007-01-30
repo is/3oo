@@ -8,7 +8,7 @@
 
 from __future__ import with_statement
 
-SPACE_VERSION = '0.0.2.18'
+SPACE_VERSION = '0.0.2.20'
 
 import time, os, threading
 import zlib
@@ -24,6 +24,10 @@ from utility import D as _D, D2 as _D2
 from utility import RoomLocation, RoomLocationToTuple
 from utility import LogFileSpliter
 
+
+def FileLength(filename):
+	s = os.stat(filename)
+	return s[6]
 
 # ====
 __all__ = (
@@ -268,8 +272,9 @@ class SpaceService(ServiceBase):
 		mkdir_p(room.base)
 		return (CC.RET_OK, self.SVCID, 0)
 
+	
 	# ---
-	def exportROOMGET2(self, channel, label, path, offset, size, entityid = 0, blocksize = 10485760, level = 4):
+	def exportROOMGET1(self, channel, label, path, offset, size, entityid = 0):
 		room = self.rooms.get(label, None)
 		if room == None:
 			return (CC.RET_ERROR, self.SVCID, CC.ERROR_SPACE_NO_SUCH_ROOM)
@@ -278,42 +283,8 @@ class SpaceService(ServiceBase):
 		if not os.path.isfile(path):
 			return (CC.RET_ERROR, self.SVCID, CC.ERROR_NO_SUCH_OBJECT)
 
-		channel.send(CreateMessage(CC.RET_OK, self.SVCID, size))
-		fin = file(path, 'r')
-		if offset:
-			fin.seek(offset)
-		starttime = time.time()
-		size0 = 0
-
-		try:
-			rest = size
-			while rest != 0:
-				bs = min(rest, blocksize)
-				contents = fin.read(bs)
-				compressed = zlib.compress(contents, level)
-				channel.sendall(ipack('I', len(compressed)))
-				channel.sendall(compressed)
-				rest -= len(contents)
-				size0 += len(compressed)
-		finally:
-			fin.close()
-
-		endtime = time.time()
-		return (
-			(CC.RET_OK, self.SVCID, size),
-			"E-%d -%d %.2fMB(%.2fMB)/%.2fs" % (
-				entityid, offset, size0/1024.0/1024, size/1024.0/1024, 
-				endtime - starttime))
-		
-	# ---
-	def exportROOMGET(self, channel, label, path, offset, size, entityid = 0):
-		room = self.rooms.get(label, None)
-		if room == None:
-			return (CC.RET_ERROR, self.SVCID, CC.ERROR_SPACE_NO_SUCH_ROOM)
-
-		path = '%s/%s' % (room.base, path)
-		if not os.path.isfile(path):
-			return (CC.RET_ERROR, self.SVCID, CC.ERROR_NO_SUCH_OBJECT)
+		if size == 0:
+			size = FileLength(path) - offset
 
 		channel.send(CreateMessage(CC.RET_OK, self.SVCID, size))
 		
@@ -341,6 +312,46 @@ class SpaceService(ServiceBase):
 			'E-%d -%d %.2fMB/%.2fs' % (
 				entityid, offset, size / 1024.0/1024, endtime - starttime))
 
+	# ---
+	def exportROOMGET2(self, channel, label, path, offset, size, entityid = 0, blocksize = 10485760, level = 4):
+		room = self.rooms.get(label, None)
+		if room == None:
+			return (CC.RET_ERROR, self.SVCID, CC.ERROR_SPACE_NO_SUCH_ROOM)
+
+		path = '%s/%s' % (room.base, path)
+		if not os.path.isfile(path):
+			return (CC.RET_ERROR, self.SVCID, CC.ERROR_NO_SUCH_OBJECT)
+
+		if size == 0:
+			size = FileLength(path) - offset
+
+		channel.send(CreateMessage(CC.RET_OK, self.SVCID, size))
+		fin = file(path, 'r')
+		if offset:
+			fin.seek(offset)
+		starttime = time.time()
+		size0 = 0
+
+		try:
+			rest = size
+			while rest != 0:
+				bs = min(rest, blocksize)
+				contents = fin.read(bs)
+				compressed = zlib.compress(contents, level)
+				channel.sendall(ipack('I', len(compressed)))
+				channel.sendall(compressed)
+				rest -= len(contents)
+				size0 += len(compressed)
+		finally:
+			fin.close()
+
+		endtime = time.time()
+		return (
+			(CC.RET_OK, self.SVCID, size),
+			"E-%d -%d %.2fMB(%.2fMB)/%.2fs" % (
+				entityid, offset, size0/1024.0/1024, size/1024.0/1024, 
+				endtime - starttime))
+	
 	# ---
 	def exportROOMDROPSHADOW(self, channel, label, name):
 		room = self.rooms.get(label)
@@ -482,7 +493,7 @@ class SpaceService(ServiceBase):
 
 			# 1.First Open Remote File
 			S.connect(sentry)
-			res = S(CC.SVC_SPACE, 'ROOMGET', slabel, spath, 0, size, task['entityid'])
+			res = S(CC.SVC_SPACE, 'ROOMGET1', slabel, spath, 0, size, task['entityid'])
 			
 			if res[0] == CC.RET_OK:
 				mkdir_p(os.path.dirname(localpath))
