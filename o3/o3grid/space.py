@@ -8,7 +8,7 @@
 
 from __future__ import with_statement
 
-SPACE_VERSION = '0.0.2.20'
+SPACE_VERSION = '0.0.3.1'
 
 import time, os, threading
 import zlib
@@ -18,6 +18,7 @@ import constants as CC
 from service import ServiceBase
 from protocol import CreateMessage, O3Channel, O3Call
 from protocol import GetDataFromSocketToFile, GetMessageFromSocket
+from protocol import GetDataFromSocketToISZIP
 
 from utility import mkdir_p, PrepareDir
 from utility import D as _D, D2 as _D2
@@ -486,19 +487,25 @@ class SpaceService(ServiceBase):
 			srcloc = task['source']
 			snode, sentry, slabel, spath = RoomLocationToTuple(srcloc)
 			droom = self.rooms[task['destroomlabel']]
-			size = task['size']
+			#size = task['size']
+			size = 0
 			localpath = '%s/%s' % (
 				droom.base, task['name'])
 
-
-			# 1.First Open Remote File
+			# open remote file
 			S.connect(sentry)
 			res = S(CC.SVC_SPACE, 'ROOMGET1', slabel, spath, 0, size, task['entityid'])
-			
+
 			if res[0] == CC.RET_OK:
+				size = res[2]
 				mkdir_p(os.path.dirname(localpath))
-				fout = file(localpath, 'w')
-				GetDataFromSocketToFile(S.socket, fout, size)
+				if localpath.endswith('.iz0') and not spath.endswith('.iz0'):
+					odsize = GetDataFromSocketToISZIP(S.socket, localpath, size)
+					task['compress'] = 'iz0'
+					task['compressedsize'] = odsize
+				else:
+					fout = file(localpath, 'w')
+					GetDataFromSocketToFile(S.socket, fout, size)
 				res = GetMessageFromSocket(S.socket)
 			else:
 				task['result'] = res[2]

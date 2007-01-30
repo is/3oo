@@ -9,6 +9,7 @@
 #from cPickle import loads, dumps, HIGHEST_PROTOCOL
 from fastmap import _loads as loads, _dumps as dumps
 from struct import pack, unpack
+from zlib import compress as _compress, decompress as _dcompress
 
 import socket
 
@@ -58,7 +59,67 @@ def GetDataFromSocketToFile(sin, fout, size):
 	
 	return size
 
-  	
+def GetDataFromSocketToISZIP(
+	sin, foname, size, linemode = True, bs = 16777216, level = 6):
+
+	rest = size
+	waitall = socket.MSG_WAITALL
+
+	bi = []
+	fout = file(foname, 'wb')
+	fout.write(chr(0) * 0x10000)
+	odsize = 0
+	idsize = 0
+	pending = ''
+
+	while True:
+		blocksize = min(rest, bs)
+		if blocksize == 0:
+			if not pending:
+				break
+			content = pending
+		else:
+			content = sin.recv(blocksize, waitall)
+			rest -= len(content)
+			if linemode:
+				if content[-1] != '\n':
+					o = content.rfind('\n')
+					if o != -1:
+						newpending = content[o + 1:]
+						content = content[:o + 1]
+					else:
+						newpending = ''
+
+					if pending:
+						content = pending + content
+					pending = newpending
+				else:
+					if pending:
+						content = pending + content
+						pending = ''
+		ccontent = _compress(content, level)
+		bi.append((odsize, len(ccontent), len(content)))
+		odsize += len(ccontent)
+		idsize += len(content)
+		fout.write(ccontent)
+
+	head0 = pack(
+		'4sIII4sIIIQQ4I',
+		'ISZ0', 0, 0, 0,
+		'HD01', 0, len(bi), bs,
+		odsize, idsize, 
+		0, 0, 0, 0)
+	head1 = ''.join([
+		pack('QII4I', x[0], x[1], x[2], 0, 0, 0, 0) for x in bi
+	])
+
+	fout.seek(0)
+	fout.write(head0)
+	fout.write(head1)
+	fout.close()
+
+	return odsize
+
 # ======
 class O3Channel(object):
 	def __init__(self):
