@@ -138,26 +138,19 @@ def RemoteReader(queue, node, addr, label, name, size, entityid):
 	try:
 		S = O3Channel().connect((addr, CC.DEFAULT_PORT))
 		res = S(CC.SVC_SPACE, 'ROOMGET1',
-			label, name, 0, size, entityid)
+			label, name, 0, 0, entityid)
+
 		if res[0] != CC.RET_OK:
 			return
+		size = res[2]
 
 		rest = size
 		while rest != 0:
-			if rest > bs:
-				buf = S.recvAll(bs)
-			else:
-				buf = S.recvAll(rest)
+			buf = S.recvAll(min(bs, rest))
 			if not buf:
 				break
 			rest -= len(buf)
 			queue.put(buf)
-			#header = S.recvAll(4)
-			#bs = struct.unpack('I', header)[0]
-			#buf = S.recvAll(bs)
-			#contents = zlib.decompress(buf)
-			#rest -= len(contents)
-			#queue.put(contents)
 
 		S.getMessage()
 		S.close()
@@ -350,18 +343,21 @@ class PVLogCounter0(object):
 				tokens = bs.split('\n')
 				tokens[0] = pending + tokens[0]
 				pending = tokens.pop()
-
+			
 			for line in tokens:
-				l = line.split('\t')
+				try:
+					l = line.split('\t')
 				
-				if l[7][0] == '4':
-					continue
+					if l[7][0] == '4':
+						continue
 		
-				mapincrease(ip, l[2])
-				mapincrease(url, l[4])
-				mapincrease(ut, l[11])
-				mapincrease(uc, l[12])
-				lines += 1
+					mapincrease(ip, l[2])
+					mapincrease(url, l[4])
+					mapincrease(ut, l[11])
+					mapincrease(uc, l[12])
+					lines += 1
+				except Exception, e:
+					_D('EXCEPTION %s %s' % (repr(e), line))
 		
 		self.lines = lines
 		self.bytes = bytes
