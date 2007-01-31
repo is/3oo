@@ -510,7 +510,8 @@ class SpaceService(ServiceBase):
 
 			# open remote file
 			S.connect(sentry)
-			res = S(CC.SVC_SPACE, 'ROOMGET1', slabel, spath, 0, size, task['entityid'])
+			res = S(CC.SVC_SPACE, 'ROOMGET1', 
+				slabel, spath, 0, size, task['entityid'])
 
 			if res[0] == CC.RET_OK:
 				size = res[2]
@@ -522,6 +523,7 @@ class SpaceService(ServiceBase):
 				else:
 					fout = file(localpath, 'w')
 					GetDataFromSocketToFile(S.socket, fout, size)
+					fout.close()
 				res = GetMessageFromSocket(S.socket)
 			else:
 				task['result'] = res[2]
