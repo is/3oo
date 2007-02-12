@@ -8,7 +8,7 @@
 
 from __future__ import with_statement
 
-WAREHOUSE_VERSION = '0.0.0.27'
+WAREHOUSE_VERSION = '0.0.0.28'
 
 import sys, os, time
 import threading
@@ -476,6 +476,15 @@ class WarehouseService(ServiceBase):
 			readyshadows = [ s for s in shadows if s.state == CC.SHADOW_STATE_OK ]
 			return (CC.RET_OK, self.SVCID, len(readyshadows), len(shadows))
 
+	# ===
+	def exportSETENTITYINFO(self, channel, entityid, info):
+		with self.lock:
+			res = self.db.setEntityInfo(entityid, info)
+			if not res:
+				return (CC.RET_OK, self.SVCID, 0)
+			else:
+				return (CC.RET_ERROR, self.SVCID, res)
+
 	# ---
 	def exportGETACTIVETASKS(self, channel):
 		with self.lock:
@@ -649,6 +658,11 @@ class WarehouseService(ServiceBase):
 			result = taskinfo['result']
 			if result == 0 and shadow.state == CC.SHADOW_STATE_MIRROR:
 				shadow.state = CC.SHADOW_STATE_OK
+
+				if taskinfo.has_key('compressedsize'):
+					self.db.setEntityInfo(entity.id, {
+						'size': taskinfo['compressedsize'],
+						'comment': 'rsize=%d' % (entity.size)})
 			else:
 				shadow.state = CC.SHADOW_STATE_FAILED
 			self.db.flush()
@@ -753,6 +767,7 @@ class WarehouseService(ServiceBase):
 							result[e] = None
 
 			return (CC.RET_OK, self.SVCID, result)
+			
 	# ===
 	def exportLISTENTITYLOCATION1(self, channel, eids):
 		with self.lock:
@@ -763,7 +778,7 @@ class WarehouseService(ServiceBase):
 					result[e] = None
 				else:
 					shadows = self.db.shadowByEntity.get(entity.id, None)
-				if not shadow:
+				if not shadows:
 					result[e] = None
 				else:
 					result[e] = [ {

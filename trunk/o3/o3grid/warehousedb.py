@@ -18,6 +18,7 @@ import time
 
 import constants as CC
 from utility import appendinmap, removeinmap
+from utility import sizeK
 
 class Room(object): pass
 class Entity(object): pass
@@ -192,6 +193,40 @@ class WarehouseDB(object):
 		self.entityByName[e.name] = e
 		return e
 	
+	# ===
+	def setEntityInfo(self, eid, info):
+		if type(eid) == str:
+			e = self.entityByName.get(eid, None)
+		elif type(eid) == int or type(eid) == long:
+			e = self.entity.get(eid, None)
+		else:
+			e = None
+
+		if not e:
+			return CC.ERROR_NO_SUCH_OBJECT
+
+		if e.active != 0:
+			return CC.ERROR_NO_SUCH_OBJECT
+
+		for k in ('source', 'tag', 'label', 'comment', 'mtime'):
+			if info.has_key(k):
+				setattr(e, k, info[k])
+
+		# size -- need update all shadows' room's used value
+		if info.has_key('size'):
+			shadows = self.shadowByEntity.get(e.id, None)
+			if shadows:
+				size0 = sizeK(e.size)
+				size1 = sizeK(info['size'])
+
+				for room in [ self.room[s.room] for s in 
+					shadows if s.active == 0 ]:
+					room.used -= size0
+					room.used += size1
+			e.size = info['size']
+		self.flush()
+		return 0
+
 	# ===
 	def getEntity(self, en):
 		if type(en) == int or type(en) == long:

@@ -12,7 +12,7 @@ import constants as CC
 class AutoConfigPolicy(object):
 	def __init__(self, service):
 		self.service = service
-		self.storageGroup = ['p-cn39', 'p-cn26', 'p-cn53', 'p-dx68']
+		self.storageGroup = ['p-cn5', 'p-cn53', 'p-dx54', 'p-dx68']
 
 	def autoConfig0(self, channel, group, hostid):
 		if not hostid.startswith('p-'):
@@ -68,6 +68,6 @@ class AutoConfigPolicy(object):
 		return (CC.RET_OK, self.service.SVCID, _C)
 
 	def getVersion(self):
-		return 'is-autoconfig-0.0.0.2'
+		return 'is-autoconfig-0.0.0.3'
 
 Policy = AutoConfigPolicy
