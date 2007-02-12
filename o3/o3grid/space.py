@@ -8,7 +8,7 @@
 
 from __future__ import with_statement
 
-SPACE_VERSION = '0.0.3.5'
+SPACE_VERSION = '0.0.3.6'
 
 import time, os, threading
 import zlib
@@ -381,9 +381,9 @@ class SpaceService(ServiceBase):
 			return (CC.RET_ERRPR, self.SVCID, e.errno)
 		return (CC.RET_OK, self.SVCID, 0)
 			
-	def exportROOMSHADOWLIST(self, channel, tag):
-		if type(tag) == str:
-			room = self.rooms.get(tag, None)
+	def exportROOMSHADOWLIST(self, channel, label):
+		if type(label) == str:
+			room = self.rooms.get(label, None)
 		else:
 			room = None
 
@@ -397,6 +397,24 @@ class SpaceService(ServiceBase):
 		baselen = len(room.base) + 1
 		return ((CC.RET_OK, self.SVCID, [ x[baselen:] for x in files ]), 
 			{'shadows': len(files),})
+
+	# ---
+	def exportROOMSHADOWSTAT(self, channel, label, name):
+		if type(label) == str:
+			room = self.rooms.get(label, None)
+		else:
+			room = None
+
+		if not room:
+			return (CC.RET_ERROR, self.SVCID, CC.ERROR_NO_SUCH_OBJECT)
+
+		path = '%s/%s' % (room.base, name)
+		try:
+			s = os.stat(path)
+			return ((CC.RET_OK, self.SVCID, list(s)), '%s/%s' % (label, name))
+		except OSError, e:
+			return ((CC.RET_ERROR, self.SVCID, ('OSError', e.filename, e.errno, e.strerror)),
+				'%s/%s-E' % (label, name))
 
 	# ---
 	def exportROOMCLEAN(self, channel, label, names):
@@ -597,5 +615,5 @@ class SpaceService(ServiceBase):
 		return (
 			(CC.RET_OK, self.SVCID, deleted),
 			"%s %d" % (prefix, deleted))
-				
 			
+
