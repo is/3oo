@@ -7,58 +7,13 @@ from o3grid.utility import cout, D as _D, D2 as _D2, DE as _E
 from fastmap import inetstr2int as inet2int, _dumps, _loads
 
 import o3lib.base
+from o3lib.fs import StartO3EntityReader
 
-VERSION = "0.0.0.0"
+VERSION = "0.0.0.1"
 CODEBASE = 'uipreducer01'
 MODULENAME = 'uipreducer01.uipreducer01'
 
 # ----- utility classes and functions
-
-# == RemoteReader & RemoteReaderStartup
-# ==F-RemoteReader
-def RemoteReader(queue, params):
-	# PARAMS LIST: + require - opt
-	# + node, addr, label, name, size,
-	# - blocksize, entityid
-	addr = (params['addr'], CC.DEFAULT_PORT)
-	label = params['label']
-	name = params['name']
-	size = params['size']
-	bs = params.get('blocksize', 1024 * 1024 * 10)
-	entityid = params.get('entityid', 0)
-
-	S = O3Channel()
-	try:
-		S.connect(addr)
-		res = S(CC.SVC_SPACE, 'ROOMGET1',
-			label, name, 0, size, entityid)
-		if res[0] == CC.RET_ERROR:
-			return
-
-		rest = size
-		while rest:
-			want = min(rest, bs)
-			buf = S.recvAll(want)
-			if not buf:
-				break
-			rest -= len(buf)
-			queue.put(buf)
-
-		S.getMessage()
-		S.close()
-	finally:
-		queue.put(None)
-
-# ===
-# ==F-StartRemoteReader
-def StartRemoteReader(queue, **kwargs): 
-	thr = threading.Thread(
-		name = 'REMOTEREADER',
-		target = RemoteReader,
-		args = (queue, kwargs))
-	thr.setDaemon(True)
-	thr.start()
-	return thr
 
 # === Log Scanner class
 # ==C-BaseScanner
@@ -162,7 +117,7 @@ def StartRemoteLogScanner(cType, **params):
 			cType.__init__(self)
 	
 	queue = Queue.Queue(10)
-	reader = StartRemoteReader(queue, **params)
+	reader = StartO3EntityReader(queue, **params)
 	scanner = Scanner(queue)
 	return (queue, reader, scanner)
 	
@@ -218,8 +173,12 @@ class JOBS15IPHour(JOBBase):
 		#label = params['label']
 		#node = params['node']
 		(queue, reader, scanner) = StartRemoteLogScanner(S15LogIPCounter, 
-			addr = P['addr'], label = P['label'],
-			name = P['entityname'], size = P['size'],
+			node = P['node'],
+			addr = P['addr'], 
+			label = P['label'],
+			name = P['entityname'], 
+			#size = P['size'],
+			size = 0,
 			entityid = P['entityid'])
 		scanner.scan()
 		S = O3Space()
@@ -243,8 +202,12 @@ class JOBUnionIPHour(JOBBase):
 		#label = params['label']
 		#node = params['node']
 		(queue, reader, scanner) = StartRemoteLogScanner(UnionLogIPCounter,
-			addr = P['addr'], label = P['label'],
-			name = P['entityname'], size = P['size'],
+			node = P['node'],
+			addr = P['addr'], 
+			label = P['label'],
+			name = P['entityname'], 
+			size = 0,
+			#size = P['size'],
 			entityid = P['entityid'])
 		scanner.scan()
 		S = O3Space()
@@ -334,7 +297,11 @@ class JOBIPDayAll(JOBBase):
 	
 # ----- mission control class
 # ==F-EntityNameToDate
-def EntityNameToHour(name): return '.'.join(name.split('/')[-4:])
+def EntityNameToHour(name): 
+	if name.endswith('.iz0'):
+		return '.'.join(name[:-4].split('/')[-4:])
+	return '.'.join(name.split('/')[-4:])
+
 def EntityNameToDate(name): return '.'.join(name.split('/')[-4:-1])
 def EntityNameToLogName(name): return name.split('/')[1]
 
@@ -408,6 +375,7 @@ class MissionIPReducer(job.Mission):
 					MODULENAME, 'JOBS15IPHour')
 				hJob.name = hJob.id
 				hJob.setup0(
+					node = snode,
 					entityname = ename,
 					entityid = eid,
 					addr = saddr,
@@ -442,6 +410,7 @@ class MissionIPReducer(job.Mission):
 				MODULENAME, 'JOBUnionIPHour')
 			job.name = job.id
 			job.setup0(
+				node = snode,
 				entityname = ename,
 				entityid = eid,
 				addr = saddr,

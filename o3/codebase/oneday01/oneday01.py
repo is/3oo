@@ -10,6 +10,7 @@ from o3grid.protocol import O3Call, O3Channel, O3Space
 from o3grid import job
 
 import o3lib.base
+from o3lib.fs import StartO3EntityReader
 
 from fastmap import increase as mapincrease, partition as mappartition
 from fastmap import fastdumps, fastloads, fastloads3, partitiondumps
@@ -92,7 +93,7 @@ class MOneDay01(job.Mission):
 			emtime = e['mtime']
 			esize = e['size']
 			sid, snode, saddr, slabel, sname, size = random.choice(shadows[eid])
-			taskname = 'C0-%02d-%s' % (serial, ename.split('/')[-1])
+			taskname = 'C0-%02d-%s' % (serial, ename.split('/')[-1].split('.')[0])
 			serial += 1
 			job = self.newSJob(taskname, MODULENAME, 'JPVLogHour')
 			job.name = job.id
@@ -273,7 +274,11 @@ class JPVLogHour(object):
 		node = params['node']
 
 		queue = Queue.Queue(10)
-		reader = StartRemoteReader(queue, node, addr, label, entityname, size, entityid)
+		#reader = StartRemoteReader(queue, node, addr, label, entityname, size, entityid)
+		reader = StartO3EntityReader(
+			queue,
+			node = node, addr = addr, label = label,
+			name = entityname, size = size, entityid = entityid)
 
 		UL = PVLogCounter0(queue)
 		UL.count()
