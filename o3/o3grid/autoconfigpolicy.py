@@ -12,24 +12,26 @@ import constants as CC
 class AutoConfigPolicy(object):
 	def __init__(self, service):
 		self.service = service
-		self.storageGroup = ['p-cn5', 'p-cn53', 'p-dx54', 'p-dx68']
+		self.storageGroup = ['z01', 'z03', 'z15', 'z26']
 
 	def autoConfig0(self, channel, group, hostid):
-		if not hostid.startswith('p-'):
-			hid = "p-%s" % hostid
-		else:
-			hid = hostid
+		#if not hostid.startswith('p-'):
+		#	hid = "p-%s" % hostid
+		#else:
+		#	hid = hostid
+		hid = hostid
+		realname = hid + '.o3-grid-info.io8.org'
 
-		if hid.startswith('p-cnn'):
-			realname = hid
-		else:
-			realname = '%s-in' % hid
+		#if hid.startswith('p-cnn'):
+		#	realname = hid
+		#else:
+		#	realname = '%s-in' % hid
 
 		ip = socket.gethostbyname(realname)
 		BASE = '/is/app/o3'
 
 		common = {
-			'name': hid[2:],
+			'name': hid,
 			'id': hid,
 			'entry': (ip, CC.DEFAULT_PORT),
 			'zone': 'o3dev',
