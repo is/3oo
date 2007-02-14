@@ -237,7 +237,7 @@ class ScheduleCore(threading.Thread):
 			mission.jobFinished(job, params)
 
 			logdetail = []
-			logdetail.append('n:%s' % nodeid.strip('p-'))
+			logdetail.append('n:%s' % nodeid)
 			logdetail.append('r:%.2fs' % (time.time() - job.submittime))
 			logdetail.append('w:%.2fs' % (job.submittime - job.createtime))
 
