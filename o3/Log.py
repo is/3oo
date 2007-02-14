@@ -10,7 +10,7 @@ while True:
 	try:
 		buf = sin.recv(300)
 
-		log = '%s %s' % (time.strftime('%m%d %H:%M:%S'), buf[2:])
+		log = '%s %s' % (time.strftime('%m%d %H:%M:%S'), buf)
 
 		fout.write(log)
 		fout.write('\n')
@@ -22,5 +22,6 @@ while True:
 
 	except:
 		pass
+
 sin.close()
 fout.close()
