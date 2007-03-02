@@ -378,7 +378,7 @@ class SpaceService(ServiceBase):
 			os.unlink(path)
 			_D2('ROOM.DROPSHADOW %s' % path)
 		except OSError, e:
-			return (CC.RET_ERRPR, self.SVCID, e.errno)
+			return (CC.RET_ERROR, self.SVCID, e.errno)
 		return (CC.RET_OK, self.SVCID, 0)
 			
 	def exportROOMSHADOWLIST(self, channel, label):

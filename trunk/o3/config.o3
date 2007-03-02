@@ -7,8 +7,8 @@ def B(p, b = BASE):
 	return '%s/%s' % (b, p)
 
 common = {
-	'name': 'dx44',
-	'id': 'p-dx44',
+	'name': 'z00',
+	'id': 'z00',
 	'zone': 'o3dev',
 	'entry': ('10.6.32.197', CC.DEFAULT_PORT),
 	'base': BASE,
@@ -21,7 +21,8 @@ common = {
 	},
 	'ulog': {
 		'addr': ('10.6.32.197', CC.DEFAULT_LOG_PORT)
-	}
+	},
+	'threadpoolsize': 10,
 	#'debug': 'call',
 }
 
@@ -47,14 +48,21 @@ autoconfig = {
 }
 
 warehouse = {
-	'dburl': 'mysql://o3:o3password@o3db/o3',
+	'dburl': 'mysql://o3:o3indexdb@o3db/o3',
 }
+
+names = {
+	'names': {
+		'BIGRESULT': ('10.6.33.213', CC.DEFAULT_PORT), # p-dx70
+	},
+}
+
 _C = {
 	'common': common,
 	'hub': hub,
 	'space': space,
 	'workspace': workspace,
-	'names': None,
+	'names': names,
 	'autoconfig': autoconfig,
 	'schedule': None,
 	'warehouse': warehouse,

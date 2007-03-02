@@ -3,6 +3,9 @@ from zlib import decompress as _decompress, MAX_WBITS
 
 from o3grid import constants as CC
 from o3grid.protocol import O3Call, O3Channel
+
+import threading
+import Queue
 # ------
 # File services ...
 # ------
@@ -28,13 +31,13 @@ def O3EntityReader0(queue, **P):
 
 			for i in xrange(blocks):
 				headstr = S.recvAll(32)
-				print len(headstr)
+				# print len(headstr)
 				blockhead = iunpack('QII4I', headstr)
 				binsize = blockhead[1]
 				boutsize = blockhead[2]
 				ccontent = S.recvAll(binsize)
-				print len(ccontent)
-				#content = _decompress(ccontent, -MAX_WBITS, boutsize)
+				# print len(ccontent)
+				# content = _decompress(ccontent, -MAX_WBITS, boutsize)
 				content = _decompress(ccontent)
 				queue.put(content)
 
@@ -59,5 +62,16 @@ def O3EntityReader0(queue, **P):
 	finally:
 		queue.put(None)
 
-# ------
+# ===
 O3EntityReader = O3EntityReader0
+
+# ======
+def StartO3EntityReader(queue, **kwargs):
+	thr = threading.Thread(
+		name = "O3EntityReader",
+		target = O3EntityReader,
+		args = (queue,), 
+		kwargs = kwargs)
+	thr.setDaemon(True)
+	thr.start()
+	return thr
