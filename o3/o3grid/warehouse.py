@@ -73,7 +73,8 @@ class WarehouseService(ServiceBase):
 			cur = int(time.time())
 			last = self.actionlast
 
-			if cur - last['entityone'] > 2:
+			# Bug - too long time to checkEntityOne_
+			if cur - last['entityone'] > 120:
 				last['entityone'] = cur
 				self.checkEntityOne_()
 
