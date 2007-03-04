@@ -44,6 +44,7 @@ class ScheduleCore(threading.Thread):
 		self.nodes = {}
 		self.missions = {}
 		self.waitQueue = {}
+		self.serial = 0
 
 		self.queue = Queue.Queue()
 		self.lock = threading.Lock()
@@ -64,17 +65,22 @@ class ScheduleCore(threading.Thread):
 		self.lock.release()
 		
 	# ---
-	def createNewMission(self, id, kwargs):
-		modname = kwargs.get('module', None)
+	def createMission_(self, kwargs):
+		P = kwargs
+		priority = P.get('priority', '6')
+		id = '%s%05d' % (priority, self.serial)
+		self.serial += 1
+
+		modname = P.get('module', None)
 		__import__(modname)
 		mod = sys.modules[modname]
-
-		missionName = kwargs.get('missionclass', 'O3Mission')
-		missionclass = getattr(mod, missionName)
-		mission = missionclass(id, kwargs)
-		mission.setup(kwargs)
+		missionClassName = P.get('missionclass', 'O3Mission')
+		MissionClass = getattr(mod, missionClassName)
+		mission = MissionClass(id, P)
+		mission.setup(P)
 		mission.schedule = self
 		return mission
+
 
 	# ---
 	# Buggy.....
@@ -103,18 +109,13 @@ class ScheduleCore(threading.Thread):
 			del self.missions[id]
 			
 	# ---
-	def submitMission(self, id, kwargs):
+	def submitMission(self, kwargs):
 		self.lock.acquire()
 		try:
-			# Check duplication
-			if self.missions.has_key(id):
-				return False
-
-			m = self.createNewMission(id, kwargs)
-			self.missions[id] = m
-			self.queue.put((ACTION_STARTMISSION, id))
-			#_D('Submit mission {%s|%s}' % (m.name, m.id), 'S')
-			return True
+			m = self.createMission_(kwargs)
+			self.missions[m.id] = m
+			self.queue.put((ACTION_STARTMISSION, m.id))
+			return m.id
 
 		finally:
 			self.lock.release()
@@ -196,9 +197,10 @@ class ScheduleCore(threading.Thread):
 		with self.lock:
 			job = node.currentJob
 			if job == None:
-				_D2('submit job to {%s} canceled' % node.id)
+				_D2('CANCEL SUBMITED JOB at {%s}' % node.id)
 				return
-			_D('submit job {%s} to {%s}' % (node.currentJob.jobid, node.id), 'S')
+			_D('SUBMIT-JOB %s|%s:%s to %s' % (
+				job.jobid, job.mission.name, job.name, node.id), 'S')
 			job.submittime = time.time()
 			jobParams = job.getJobParams()
 		channel = O3Channel()
@@ -249,7 +251,8 @@ class ScheduleCore(threading.Thread):
 				#if params.has_key('debuginfo'):
 				#	logdetail.append('info:%s' % params['debuginfo'])
 
-			self.jobLog.L('%s %s' % (jobid, ' '.join(logdetail)))
+			self.jobLog.L('%s|%s:%s %s' % (
+				jobid, mission.name, job.name, ' '.join(logdetail)))
 
 			if type(params) == dict and params.has_key('debuginfo'):
 				_D("-JOB-END- %s" % params['debuginfo'])
@@ -315,7 +318,7 @@ class ScheduleCore(threading.Thread):
 			if starttime: logdetails.append('during:%.2fs' % (time.time() - starttime))
 
 			self.missionLog.L('%s|%s %s' % (
-				m.name, m.id, ','.join(logdetails)))
+				m.id, m.name, ','.join(logdetails)))
 			
 	# ---
 	def run(self):
@@ -375,9 +378,10 @@ class Schedule0Service(ServiceBase):
 		return (CC.RET_OK, self.SVCID, res)
 	
 	# TODO detail error message
-	def exportSUBMITMISSION(self, channel, id, params):
-		if self.core.submitMission(id, params):
-			return (CC.RET_OK, self.SVCID, 0)
+	def exportSUBMITMISSION(self, channel, params):
+		mid = self.core.submitMission(params)
+		if mid:
+			return (CC.RET_OK, self.SVCID, mid)
 		else:
 			return (CC.RET_ERROR, self.SVCID, 0)
 	

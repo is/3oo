@@ -42,11 +42,11 @@ def WeekPostfix(datename):
 class MOneDay01(job.Mission):
 	def __init__(self, id, kwargs):
 		job.Mission.__init__(self, id, kwargs)
-		self.name = MISSIONNAME
+		#self.name = MISSIONNAME
 		self.codebase = CODEBASE
 	
 	def setup(self, kwargs):
-		self.kwargs = kwargs
+		job.Mission.setup(self, kwargs)
 	
 	def start(self):
 		self.starttime = time.time()
@@ -70,6 +70,7 @@ class MOneDay01(job.Mission):
 
 		self.totalJob = self.newSJob('C9-SUM', MODULENAME, 'JOneDaySummary')
 		self.totalJob.setup0(
+			jobname = 'SUM',
 			prefix = self.kwargs['prefix'],
 			partitions = self.partitions,
 			hourinfo = self.hourinfo)
@@ -79,6 +80,7 @@ class MOneDay01(job.Mission):
 		for i in range(PARTITIONS):
 			job = self.newSJob('C1-P%d' % i, MODULENAME, 'JPVPartitionSumJob')
 			job.setup0(
+				jobname = 'P%d' % i,
 				hourres = self.hourres,
 				partitionid = i)
 			job.fire()
@@ -93,17 +95,18 @@ class MOneDay01(job.Mission):
 			emtime = e['mtime']
 			esize = e['size']
 			sid, snode, saddr, slabel, sname, size = random.choice(shadows[eid])
-			taskname = 'C0-%02d-%s' % (serial, ename.split('/')[-1].split('.')[0])
+			taskname = 'C0-%02d' % (serial)
 			serial += 1
 			job = self.newSJob(taskname, MODULENAME, 'JPVLogHour')
 			job.name = job.id
-			job.setup0(
-				entityname = ename,
-				entityid = eid,
-				addr = saddr,
-				node = snode,
-				label = slabel,
-				size = esize,)
+			job.setup({
+				'jobname': ename.split('/')[-1].split('.')[0],
+				'entityname': ename,
+				'entityid': eid,
+				'addr': saddr,
+				'node': snode,
+				'label': slabel,
+				'size': esize,})
 			job.fire()
 			for j in self.partitionJobs:
 				j.need(job)
@@ -116,8 +119,8 @@ class MOneDay01(job.Mission):
 		elif job.id.startswith('C1-'):
 			self.partitions.append((params['location'], params['resultid']))
 		elif job.id.startswith('C9-'):
-			cout('-MISSION-END- {%s} %.2fm %.2fs' % (
-				self.id, self.insize0, time.time() - self.starttime))
+			cout('-MISSION-END- {%s|%s:%s} %.2fm %.2fs' % (
+				self.id, self.name, job.name, self.insize0, time.time() - self.starttime))
 
 
 # ----- UTILITIES -----

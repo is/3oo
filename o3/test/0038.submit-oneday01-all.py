@@ -24,23 +24,23 @@ res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
 	CC.SVC_HUB, 'O3UNLOADCODEBASE', 'oneday01')
 
 
-if o3testmisc.IsDebugMission('oneday01'):
-	for logname in ('uume', 'dzh', 'tt', 'itv'):
-		res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
-			CC.SVC_SCHEDULE, 'CLEANMISSION', 'OD01-%s-%s' % (logname, dname))
-	res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
-		CC.SVC_HUB, 'O3UNLOADCODEBASE', 'oneday01')
-	time.sleep(2)
+#if o3testmisc.IsDebugMission('oneday01'):
+#	for logname in ('uume', 'dzh', 'tt', 'itv'):
+#		res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
+#			CC.SVC_SCHEDULE, 'CLEANMISSION', 'OD01-%s-%s' % (logname, dname))
+#	res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
+#		CC.SVC_HUB, 'O3UNLOADCODEBASE', 'oneday01')
+#	time.sleep(2)
 
 
 
 #time.sleep(2)
-for logname in ('dzh', 'itv', 'tt', 'uume'):
+for logname in ('uume', 'itv', 'dzh', 'tt'):
 	res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
-		CC.SVC_SCHEDULE, 'SUBMITMISSION',
-		'OD01-%s-%s' % (logname, dname),
-		{
+		CC.SVC_SCHEDULE, 'SUBMITMISSION', {
+			'name': 'OD01-%s-%s' % (logname, dname),
 			'module': 'oneday01.oneday01',
 			'missionclass': 'O3Mission',
 			'prefix': 'plog/%s/%s' % (logname, datename),
 		})
+	print '%s|OD01-%s-%s' % (res[2], logname, dname)
