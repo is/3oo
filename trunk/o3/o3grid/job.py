@@ -13,14 +13,25 @@ import constants as CC
 class MissionBase(object): pass
 class SJobBase(object): pass
 
+# ------
+# mid - Mission id
+# jid - Job ID
+# jobid - Full job ID
+# mname - Mission name
+# jname - Job name
+# ------
 class Mission(MissionBase):
 	def __init__(self, id, kwargs = None):
+		self.serial = 0
 		self.id = id
+
 		self.jobs = {}
 		self.queued = {}
 		self.unfinished = {}
-		self.name = 'EmptyMission'
+
+		self.name = 'NoNameMission'
 		self.lock = threading.Lock()
+
 		self.kwargs = None
 		self.schedule = None
 		self.codebase = None
@@ -31,11 +42,12 @@ class Mission(MissionBase):
 		sjob.modulename = modulename
 		sjob.classname = classname
 
-		#self.jobs[id] = sjob
-		#self.unfinished[id] = sjob
+		self.jobs[id] = sjob
+		self.unfinished[id] = sjob
 		return sjob
 
 	def setup(self, kwargs):
+		self.name = kwargs.get('name', self.name)
 		self.kwargs = kwargs
 
 	def start(self): pass
@@ -57,7 +69,7 @@ class SJob(SJobBase):
 		self.outResource = []
 		self.attrs = {}
 		self.params = None
-		self.name = 'EmptyJob'
+		self.name = 'NoNameJob'
 		self.runat = None
 		self.modulename = None
 		self.classname = None
@@ -72,10 +84,11 @@ class SJob(SJobBase):
 		self.mission.unfinished[self.id] = self
 
 	def setup0(self, **kwargs):
-		self.params = kwargs
+		self.setup(kwargs)
 	
 	def setup(self, kwargs):
 		self.params = kwargs
+		self.name = kwargs.get('jobname', self.name)
 
 	def getJobParams(self):
 		job = {}
@@ -84,6 +97,9 @@ class SJob(SJobBase):
 		job['module'] = self.modulename
 		job['class'] = self.classname
 		job['jobid'] = self.jobid
+		job['jid'] = self.id
+		job['jname'] = self.name
+		job['mname'] = self.mission.name
 		job['params'] = self.params
 
 		return job

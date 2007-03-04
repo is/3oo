@@ -6,7 +6,7 @@
 #   WorkSpace
 #
 
-WORKSPACE_VERSION = '0.0.2.3'
+WORKSPACE_VERSION = '0.0.2.4'
 # -----
 import threading
 import os
@@ -136,9 +136,14 @@ class WorkSpaceService(ServiceBase):
 		return (CC.RET_OK, self.SVCID, deleted)
 
 	def exportSTARTJOB(self, channel, job):
-		codebasename = job['codebase']
-		if not self.loadCodeBase(codebasename, None):
-			return (CC.RET_ERROR, self.SVCID, self.local.lastError[2], self.local.lastError)
+		codebasenames = job['codebase']
+		if type(codebasenames) == str:
+			codebasenames = [codebasenames, ]
+		#codebasename = job['codebase']
+		for codebasename in codebasenames:
+			if not self.loadCodeBase(codebasename, None):
+				return (CC.RET_ERROR, 
+					self.SVCID, self.local.lastError[2], self.local.lastError)
 
 		thr = threading.Thread(
 			name = 'WORKSPACE-RUNNER', 
