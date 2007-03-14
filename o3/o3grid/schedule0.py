@@ -8,7 +8,7 @@
 
 from __future__ import with_statement
 
-SCHEDULE0_VERSION = '0.0.1.7'
+SCHEDULE0_VERSION = '0.0.1.8'
 
 import sys, time
 import operator, random
@@ -20,13 +20,15 @@ from protocol import O3Channel
 import constants as CC
 from utility import D as _D, D2 as _D2, DE as _E, FileLogger
 
+# ===
 ACTION_WORKSPACEADVERT = 1
 ACTION_NEWNODEJOIN = 3
 ACTION_STARTMISSION = 19
 ACTION_JOBFINISHED = 22 
 ACTION_MISSIONFINISHED = 24
-ACTION_CLEANMISSION = 25
+ACTION_CANCELMISSION = 25
 
+# ===
 class NodeInfo(object):
 	def __init__(self, id, entry, tag):
 		self.id = id
@@ -52,6 +54,9 @@ class ScheduleCore(threading.Thread):
 
 		self.missionLog = FileLogger('../log/O3Mission')
 		self.jobLog = FileLogger('../log/O3Job')
+
+		self.missionHistory = []
+		self.missionHistorySize = 120
 
 	# ---
 	def setup(self, cf): pass
@@ -81,33 +86,53 @@ class ScheduleCore(threading.Thread):
 		mission.schedule = self
 		return mission
 
+	# ---
+	def cancelMission_(self, id):
+		mission = self.missions.get(id, None)
+		# mission wasn't found
+		if not mission: 
+			return
+			
+		# mission wasn't in active state
+		if mission.state not in (CC.SMISSION_READY, CC.SMISSION_DOING):
+			return
+
+		# clean jobs in mission.waitJob
+		mission.waitJobs.clear()
+
+		# clean jobs in mission.readyJobs
+		if len(mission.readyJobs):
+			readyJobIDs = mission.readyJobs.keys()
+			for queue in self.waitQueue.values():
+				for job in list(queue):
+					if job.mission == mission and job.id in readyJobIDs:
+						queue.remove(job)
+			mission.readyJobs.clear()
+
+		# clean jobs in mission.runJobs:
+		if len(mission.runJobs):
+			for job in mission.runJobs.values():
+				node = self.nodes.get(job.runat, None)
+				if not node:
+					continue
+				node.currentJob = None
+			mission.runJobs.clear()
+
+		mission.state = CC.SMISSION_CANCEL
+		del self.missions[id]
+		self.pushToMissionHistory_(mission)
+
+	# --- cancelMission
+	def cancelMission(self, id):
+		with self.lock:
+			self.cancelMission_(id)
 
 	# ---
-	# Buggy.....
-	# Many structure hold the jobid, not job itself.
-	def cleanMission(self, id):
-		with self.lock:
-			m = self.missions.get(id, None)
-			if not m:
-				return
-
-			# clean queued jobs
-			queued = m.queued
-			if len(queued):
-				for queue in self.waitQueue.values():
-					for j in list(queue):
-						if j.id in queued:
-							queue.remove(j)
-					
-			# clean jobs on nodes
-			for node in self.nodes.values():
-				if node.currentJob:
-					if node.currentJob.id in queued:
-						node.currentJob = None
-					
-			# clean mission
-			del self.missions[id]
-			
+	def pushToMissionHistory_(self, mission):
+		if len(self.missionHistory) > self.missionHistorySize:
+			self.missionHistory.pop(0)
+		self.missionHistory.append(mission)
+		
 	# ---
 	def submitMission(self, kwargs):
 		self.lock.acquire()
@@ -124,8 +149,9 @@ class ScheduleCore(threading.Thread):
 		self.lock.acquire()
 		try:
 			m = self.missions[id]
-			_D('Mission {%s|%s} start' % (m.name, m.id), 'S')
-			m.start()
+			_D('mission {%s|%s} start' % (m.name, m.id), 'S')
+			m.prepare()
+			m.state = CC.SMISSION_READY
 			self.pushReadyJobsToWaitQueue_(m)
 			self.needSchedule = True
 			self.schedule_()
@@ -188,19 +214,23 @@ class ScheduleCore(threading.Thread):
 			self.submitJobToNode_(node, job)
 
 	def submitJobToNode_(self, node, job):
-		#_D('SubmitJobToNode_ %s %s' % (node.id, job.jobid))
+		#_D('submitJobToNode_ %s %s' % (node.id, job.jobid))
 		node.currentJob = job
-		self.runat = node.id
+		del job.mission.readyJobs[job.id]
+		job.mission.runJobs[job.id] = job
+		job.runat = node.id
+		job.state = CC.SJOB_SUBMIT
 		self.server.delayCall0(self._submitJobToNode, node)
 	
 	def _submitJobToNode(self, node):
 		with self.lock:
 			job = node.currentJob
 			if job == None:
-				_D2('CANCEL SUBMITED JOB at {%s}' % node.id)
+				_D2('cancel submited job at {%s}' % node.id)
 				return
-			_D('SUBMIT-JOB %s|%s:%s to %s' % (
+			_D('submit %s|%s:%s to %s' % (
 				job.jobid, job.mission.name, job.name, node.id), 'S')
+			job.state = CC.SJOB_RUN
 			job.submittime = time.time()
 			jobParams = job.getJobParams()
 		channel = O3Channel()
@@ -224,38 +254,63 @@ class ScheduleCore(threading.Thread):
 			self.lock.release()
 
 	# ---
-	def jobFinished(self, nodeid, jobid, params):
+	def jobFinished(self, nodeid, jobid, res, info):
 		with self.lock:
 			node = self.nodes[nodeid]
 
 			mid,jid = jobid.split(':', 1)
-			mission = self.missions[mid]
-			job = mission.jobs[jid]
+			#mission = self.missions[mid]
 
 			node.currentJob = None
 			self.needSchedule = True
 
-			del mission.queued[jid]
-			mission.jobFinished(job, params)
+			mission = self.missions.get(mid, None)
+			if mission == None:
+				_D('mission %s cancelled' % (jobid))
+				self.schedule_()
+				return
+
+			job = mission.jobs[jid]
+			del mission.runJobs[jid]
+
+			job.state = CC.SJOB_FINISHED
+
+			if info.has_key('exception'):
+				_D('job exception raised %s %s:%s' % (
+					nodeid, jobid, info['exception']['typename']))
+				self.cancelMission_(mid)
+				mission.state = CC.SMISSION_EXCEPTION
+				self.schedule_()
+				return
+
+			try:
+				mission.jobFinished(job, res)
+			except Exception, e:
+				_D('job-finished exception raised %s:%s' % (
+					jobid, e.__class__.__name__))
+				self.cancelMission_(mid)
+				mission.state = CC.SMISSION_EXCEPTION
+				_E(e)
+				return
 
 			logdetail = []
 			logdetail.append('n:%s' % nodeid)
 			logdetail.append('r:%.2fs' % (time.time() - job.submittime))
 			logdetail.append('w:%.2fs' % (job.submittime - job.createtime))
 
-			if type(params) == dict:
-				if params.has_key('insize0'): 
-					logdetail.append('i:%.2fm' % params['insize0'])
-				if params.has_key('outsize0'): 
-					logdetail.append('o:%.2fm' % params['outsize0'])
-				#if params.has_key('debuginfo'):
-				#	logdetail.append('info:%s' % params['debuginfo'])
+			if type(res) == dict:
+				if res.has_key('insize0'): 
+					logdetail.append('i:%.2fm' % res['insize0'])
+				if res.has_key('outsize0'): 
+					logdetail.append('o:%.2fm' % res['outsize0'])
+				#if res.has_key('debuginfo'):
+				#	logdetail.append('info:%s' % res['debuginfo'])
 
 			self.jobLog.L('%s|%s:%s %s' % (
 				jobid, mission.name, job.name, ' '.join(logdetail)))
 
-			if type(params) == dict and params.has_key('debuginfo'):
-				_D("-JOB-END- %s" % params['debuginfo'])
+			if type(res) == dict and res.has_key('debuginfo'):
+				_D("job-end %s" % res['debuginfo'])
 
 			for j in job.next:
 				j.prev.remove(job)
@@ -263,22 +318,25 @@ class ScheduleCore(threading.Thread):
 				if len(j.prev) == 0:
 					self.pushJobToWaitQueue_(mission, j)
 
-			if len(mission.unfinished) + len(mission.queued) == 0:
+			#if len(mission.unfinished) + len(mission.queued) == 0:
+			#	self.queue.put((ACTION_MISSIONFINISHED, mission.id))
+			if len(mission.waitJobs) + len(mission.readyJobs) + len(mission.runJobs) == 0:
 				self.queue.put((ACTION_MISSIONFINISHED, mission.id))
 
 			self.schedule_()
 
 	def pushReadyJobsToWaitQueue_(self, mission):
-		#for job in sorted(mission.unfinished.values(), 
-		#	key = operator.attrgetter('jobid')):
-		for job in mission.unfinished.values():
+		for job in mission.waitJobs.values():
 			if len(job.prev) == 0:
 				self.pushJobToWaitQueue_(mission, job)
 
 	def pushJobToWaitQueue_(self, mission, job):
-		del mission.unfinished[job.id]
-		mission.queued[job.id] = job
+		# Move job from wait queue to ready queue
+		del mission.waitJobs[job.id]
+		mission.readyJobs[job.id] = job
+		job.state = CC.SJOB_READY
 
+		# Push job in global submitting Queue
 		if job.runat:
 			runat = job.runat
 		else:
@@ -297,7 +355,9 @@ class ScheduleCore(threading.Thread):
 			m = self.missions[mid]
 			del self.missions[mid]
 			m.finished()
+			m.state = CC.SMISSION_DONE
 
+			self.pushToMissionHistory_(m)
 			_D('mission {%s|%s} finished' % (m.name, m.id), 'S')
 
 			# Log to mission logs
@@ -341,10 +401,11 @@ class ScheduleCore(threading.Thread):
 						self.schedule()
 					elif task[0] == ACTION_MISSIONFINISHED:
 						self.missionFinished(*task[1:])
-					elif task[0] == ACTION_CLEANMISSION:
-						self.cleanMission(*task[1:])
+					elif task[0] == ACTION_CANCELMISSION:
+						self.cancelMission(*task[1:])
 			except Exception, e:
 				_E(e)
+			self.queue.task_done()
 		
 class Schedule0Service(ServiceBase):
 	SVCID = CC.SVC_SCHEDULE
@@ -385,15 +446,15 @@ class Schedule0Service(ServiceBase):
 		else:
 			return (CC.RET_ERROR, self.SVCID, 0)
 	
-	def exportJOBFINISHED(self, channel, nodeid, jobid, params):
-		self.queue.put((ACTION_JOBFINISHED, nodeid, jobid, params))
+	def exportJOBFINISHED(self, channel, nodeid, jobid, res, info):
+		self.queue.put((ACTION_JOBFINISHED, nodeid, jobid, res, info))
 		return ((CC.RET_OK, self.SVCID, 0), "%s %s" % (nodeid, jobid))
 	
 	def exportMISSIONNOTIFY(self, channel, nodeid, jobid, params):
 		return self.core.missionNotify(channel, nodeid, jobid, params)
 	
-	def exportCLEANMISSION(self, channel, missionid):
-		self.queue.put((ACTION_CLEANMISSION, missionid))
+	def exportCANCELMISSION(self, channel, missionid):
+		self.queue.put((ACTION_CANCELMISSION, missionid))
 		return (CC.RET_OK, self.SVCID, 0)
 
 # -- DOC --

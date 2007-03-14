@@ -116,6 +116,7 @@ def CommonThreadWorker(queue):
 		except Exception, e:
 			_E(e)
 			pass
+		queue.task_done()
 
 class CommonThreadPool(object):
 	def __init__(self, threads, maxsize):

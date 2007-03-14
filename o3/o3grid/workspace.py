@@ -6,15 +6,16 @@
 #   WorkSpace
 #
 
-WORKSPACE_VERSION = '0.0.2.4'
+WORKSPACE_VERSION = '0.0.2.9'
 # -----
 import threading
-import os
-import sys
+import os, sys
+from cStringIO import StringIO
+from traceback import print_tb, print_stack
 
 from service import ServiceBase
 from protocol import CreateMessage, CreateMessage0, \
-  GetMessageFromSocket, O3Channel
+  GetMessageFromSocket, O3Channel, O3Call
 from utility import mkdir_p, D as _D, D2 as _D2, DE as _E
 import constants as CC
 
@@ -177,16 +178,42 @@ class WorkSpaceService(ServiceBase):
 		modulename = job['module']
 		__import__(modulename)
 
+		runtimeException = None
+
 		try:
 			bootmod = sys.modules[modulename]
 			J = bootmod.generateJob(job, self)
 			J.run()
 		except Exception, e:
+			runtimeException = e
+
+			reName = e.__class__.__name__
+			reRepr = repr(e)
+			reStr = str(e)
+
+			s = StringIO()
+			print_tb(sys.exc_info()[2], limit = 10, file = s)
+			reTraceback = s.getvalue()
+
 			_E(e)
 
 		self.jobFinished(job)
+		info = job.get('info', {})
+		if runtimeException:
+			s = StringIO()
+			print_tb
+			info['exception'] = {
+				'typename': reName,
+				'repr': reRepr,
+				'str': reStr,
+				'traceback': reTraceback,
+			}
+
 		channel = O3Channel()
 		channel.connect(self.schedule)
-		channel(CC.SVC_SCHEDULE, 'JOBFINISHED', self.nodeid, job.get('jobid'), 
-			job.get('result', None))
+		channel(
+			CC.SVC_SCHEDULE, 'JOBFINISHED', 
+			self.nodeid, 
+			job.get('jobid'), 
+			job.get('result', None), info)
 		channel.close()

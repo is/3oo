@@ -48,7 +48,7 @@ class MOneDay01(job.Mission):
 	def setup(self, kwargs):
 		job.Mission.setup(self, kwargs)
 	
-	def start(self):
+	def prepare(self):
 		self.starttime = time.time()
 		self.insize0 = 0.0
 		self.pv = 0
