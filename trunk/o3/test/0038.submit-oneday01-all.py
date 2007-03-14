@@ -20,8 +20,9 @@ else:
 	datename = '2007/01/18'
 
 dname = datename.replace('/', '.')
-res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
-	CC.SVC_HUB, 'O3UNLOADCODEBASE', 'oneday01')
+
+#res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
+#	CC.SVC_HUB, 'O3UNLOADCODEBASE', 'oneday01')
 
 
 #if o3testmisc.IsDebugMission('oneday01'):
@@ -35,7 +36,7 @@ res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
 
 
 #time.sleep(2)
-for logname in ('uume', 'itv', 'dzh', 'tt'):
+for logname in ('uume', 'itv', 'dzh', 'tt', 'hi', 'passport'):
 	res = O3Call(('127.0.0.1', CC.DEFAULT_PORT),
 		CC.SVC_SCHEDULE, 'SUBMITMISSION', {
 			'name': 'OD01-%s-%s' % (logname, dname),

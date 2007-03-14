@@ -26,8 +26,11 @@ class Mission(MissionBase):
 		self.id = id
 
 		self.jobs = {}
-		self.queued = {}
-		self.unfinished = {}
+		self.waitJobs= {}
+		self.readyJobs = {}
+		self.runJobs = {}
+
+		self.state = CC.SMISSION_NEW
 
 		self.name = 'NoNameMission'
 		self.lock = threading.Lock()
@@ -43,15 +46,16 @@ class Mission(MissionBase):
 		sjob.classname = classname
 
 		self.jobs[id] = sjob
-		self.unfinished[id] = sjob
+		#self.unfinished[id] = sjob
 		return sjob
 
 	def setup(self, kwargs):
 		self.name = kwargs.get('name', self.name)
 		self.kwargs = kwargs
 
-	def start(self): pass
-	def finished(self): pass
+	def submit(self): pass # Callback when mission was submitted
+	def prepare(self): pass # Callback when mission's first job run
+	def finished(self): pass # Callback when all jobs finished.
 	def jobFinished(self, job, params): pass
 	def notify(self, channel, node, job, params):
 		return (CC.RET_OK, CC.SVC_SCHEDULE, 0)
@@ -59,6 +63,7 @@ class Mission(MissionBase):
 class SJob(SJobBase):
 	def __init__(self, mission, id):
 		self.id = id
+		self.state = CC.SJOB_NEW
 		self.mission = mission
 		self.codebase = mission.codebase
 		self.jobid = '%s:%s' % (mission.id, id)
@@ -80,8 +85,9 @@ class SJob(SJobBase):
 
 	def fire(self):
 		self.createtime = time.time()
+		self.state = CC.SJOB_WAIT
 		self.mission.jobs[self.id] = self
-		self.mission.unfinished[self.id] = self
+		self.mission.waitJobs[self.id] = self
 
 	def setup0(self, **kwargs):
 		self.setup(kwargs)
