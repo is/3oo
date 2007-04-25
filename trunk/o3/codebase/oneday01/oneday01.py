@@ -304,7 +304,7 @@ class JPVLogHour(object):
 			'location': self.workspace.server.entry,
 			'insize0': UL.bytes / 1024.0 / 1024,
 			'restext':[
-				jobid, {
+				self.jobinfo['jname'], {
 					'pv': UL.lines, 'ip': len(UL.ip), 'url': len(UL.url),
 					'ut': len(UL.ut), 'uc': len(UL.uc)}
 				],
@@ -387,10 +387,10 @@ def generateJob(job, workspace):
 	G = globals()
 	C = G[classname]
 
-	param = job.get('params', {})
+	params = job.get('params', {})
 	job['workspace'] = workspace
 
-	return C(param, job)
+	return C(params, job)
 
 O3Mission = MOneDay01
 
