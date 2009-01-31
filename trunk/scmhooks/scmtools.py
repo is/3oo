@@ -48,4 +48,5 @@ class RepoConfig(object):
     self.defaults[opt] = value
 # ---- end of RepoConfig
 
+
 # vim: ts=2 expandtab ai sts=2
