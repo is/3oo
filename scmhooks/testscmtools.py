@@ -87,9 +87,6 @@ class RepoConfigBaseTests(unittest.TestCase):
     assert repo.get3(r0, 'abcdef/abc', opt) == 'v2'
     assert repo.get3(r0, 'abcdef/abc', opt2) == None
     assert repo.get3(r2, 'abc/def', opt2) == None
-   
-
-
 # ---- end of RepoConfigBaseTests 
 
     
