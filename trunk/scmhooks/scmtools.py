@@ -48,4 +48,10 @@ class RepoConfig(object):
     self.defaults[opt] = value
 # ---- end of RepoConfig
 
+def LoadRepoConfig(fn):
+  cf = RepoConfig()
+  m = __import__(fn)
+  m.setup(cf)
+  return cf
+
 # vim: ts=2 expandtab ai sts=2

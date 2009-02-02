@@ -1,5 +1,5 @@
 import os, sys, unittest, inspect
-from scmtools import RepoConfig
+from scmtools import RepoConfig, LoadRepoConfig
 
 class RepoConfigBaseTests(unittest.TestCase):
   # --
@@ -90,7 +90,53 @@ class RepoConfigBaseTests(unittest.TestCase):
     assert repo.get3(r2, 'abc/def', opt2) == None
 # ---- end of RepoConfigBaseTests 
 
-    
+class RepoConfigLoadTests(unittest.TestCase):
+  def testLoadRepoConfig(self):
+    # -- create test repo config --
+    fout = file('repo_cf_test0.py', 'w')
+    fout.write("""
+#
+# Repo config for test0
+#
+
+def setup(cf):
+  r0 = '/R0'
+  r0 = '/R0'
+  r1 = '/R1'
+  r2 = '/R2'
+  opt = 'encoding'
+  opt2 = 'encoding2'
+
+  cf.setDefault(opt, 'v0')
+  cf.set3(r0, 'abc/', opt, 'v1')
+  cf.set3(r0, 'abcdef/', opt, 'v2')
+  cf.set3(r0, 'abc/def/', opt, 'v3')
+  cf.set3(r1, '', opt, 'v4')
+# vim: ts=2 sts=2 expandtab ai
+""")
+    fout.close()
+
+    repo = LoadRepoConfig('repo_cf_test0')
+
+    r0 = '/R0'
+    r1 = '/R1'
+    r2 = '/R2'
+    opt = 'encoding'
+    opt2 = 'encoding2'
+
+
+    assert repo.get3(r0, '', opt2) == None
+    assert repo.get3(r2, 'abc/', opt) == 'v0'
+    assert repo.get3(r1, 'abc/', opt) == 'v4'
+    assert repo.get3(r0, 'abc/def', opt) == 'v1'
+    assert repo.get3(r0, 'abc/def/abc', opt) == 'v3'
+    assert repo.get3(r0, 'abcdef/abc', opt) == 'v2'
+    assert repo.get3(r0, 'def/', opt) == 'v0'
+    assert repo.get3(r0, 'abcdef/abc', opt2) == None
+    assert repo.get3(r2, 'abc/def', opt2) == None
+
+    os.unlink('repo_cf_test0.py')
+
 if __name__ == '__main__':
   unittest.main()
 # vim: ts=2 sts=2 expandtab ai
