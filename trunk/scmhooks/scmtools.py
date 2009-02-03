@@ -81,4 +81,7 @@ def FileExtMatch(pattern, ext):
   return False
 # -- end
 
+def VersionString(l):
+  return '.'.join(['%s' % x for x in l])
+
 # vim: ts=2 expandtab ai sts=2
