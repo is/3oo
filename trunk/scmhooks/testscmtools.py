@@ -1,11 +1,31 @@
 import os, sys, unittest, inspect
-from scmtools import RepoConfig, LoadRepoConfig
+from scmtools import RepoConfig, LoadRepoConfig, FileExtMatch
+
+class SCMToolsTests(unittest.TestCase):
+  def testFileExtMatch(self):
+    assert FileExtMatch(None, 'java')
+    assert FileExtMatch('', 'java')
+    assert FileExtMatch('+', 'java')
+
+    assert not FileExtMatch('-', 'java')
+
+    assert FileExtMatch('java', 'java')
+    assert FileExtMatch('+java', 'java')
+    assert not FileExtMatch('+java', 'c')
+    assert not FileExtMatch('-java', 'java')
+
+    assert FileExtMatch('java,c', 'java')
+    assert FileExtMatch('java,c', 'c')
+    assert FileExtMatch('-java,+', 'c')
+    assert not FileExtMatch('java,c', 'cpp')
+    assert not FileExtMatch('-java,c', 'java')
+    assert not FileExtMatch('java,-', 'c')
+    assert FileExtMatch('java,c,cpp,txt,-', 'txt')
+    assert not FileExtMatch('java,c,cpp,-txt,+', 'txt')
+# ---- end
+
 
 class RepoConfigBaseTests(unittest.TestCase):
-  # --
-  def setUp(self):
-    pass
-  
   def testSetDefault(self):
     repo = RepoConfig()
 
@@ -88,9 +108,7 @@ class RepoConfigBaseTests(unittest.TestCase):
     assert repo.get3(r0, 'def/', opt) == 'v0'
     assert repo.get3(r0, 'abcdef/abc', opt2) == None
     assert repo.get3(r2, 'abc/def', opt2) == None
-# ---- end of RepoConfigBaseTests 
 
-class RepoConfigLoadTests(unittest.TestCase):
   def testLoadRepoConfig(self):
     # -- create test repo config --
     fout = file('repo_cf_test0.py', 'w')
@@ -135,7 +153,13 @@ def setup(cf):
     assert repo.get3(r0, 'abcdef/abc', opt2) == None
     assert repo.get3(r2, 'abc/def', opt2) == None
 
-    os.unlink('repo_cf_test0.py')
+    try:
+      os.unlink('repo_cf_test0.py')
+      os.unlink('repo_cf_test0.pyc')
+    except OSError:
+      pass
+# ---- end of RepoConfigBaseTests 
+
 
 if __name__ == '__main__':
   unittest.main()

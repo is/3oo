@@ -53,5 +53,32 @@ def LoadRepoConfig(fn):
   m = __import__(fn)
   m.setup(cf)
   return cf
+# -- end
+
+
+def FileExtMatch(pattern, ext):
+  if pattern == None or pattern == "":
+    return True
+
+  tokens = pattern.split(',')
+
+  for token in tokens:
+    if token == '+':
+      return True
+    elif token == '-':
+      return False
+
+    sign = '+'
+    if token[0] in ('+', '-'):
+      sign = token[0]
+      token = token[1:]
+
+    if ext == token:
+      if sign == '+':
+        return True
+      else:
+        return False
+  return False
+# -- end
 
 # vim: ts=2 expandtab ai sts=2
