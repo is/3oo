@@ -1,6 +1,7 @@
 import os, sys, unittest, inspect
 from scmtools import RepoConfig, LoadRepoConfig
 from scmtools import VersionString, FileExtMatch
+from scmtools import FileExt
 
 class SCMToolsTests(unittest.TestCase):
   def testFileExtMatch(self):
@@ -29,7 +30,15 @@ class SCMToolsTests(unittest.TestCase):
     assert VersionString((1,)) == '1'
     assert VersionString((1,2,'dev','pre5')) == '1.2.dev.pre5'
     assert VersionString(['dev', 2]) == 'dev.2'
-# ---- end
+  # --end--
+
+  def testFileExt(self):
+    assert FileExt('abc.jpg') == 'jpg'
+    assert FileExt('abcdef') == ''
+    assert FileExt('hello.world/abc') == ''
+    assert FileExt('abc.Def') == 'def'
+  # --end--
+# --cend--
 
 
 class RepoConfigBaseTests(unittest.TestCase):

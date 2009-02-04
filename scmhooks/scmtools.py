@@ -79,9 +79,21 @@ def FileExtMatch(pattern, ext):
       else:
         return False
   return False
-# -- end
+# --end--
 
 def VersionString(l):
   return '.'.join(['%s' % x for x in l])
+# --end--
+
+def FileExt(fn):
+  p1, p2, p3 = fn.rpartition('.')
+  if not p2:
+    return ''
+
+  if p3.find('/') != -1:
+    return ''
+  return p3.lower()
+# --end--
+
 
 # vim: ts=2 expandtab ai sts=2

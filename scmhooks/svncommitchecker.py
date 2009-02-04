@@ -9,7 +9,7 @@ __PROGNAME__ = 'IS Subversion Precommit Checker'
 import sys, os
 import pysvn
 
-from scmtools import RepoConfig, LoadRepoConfig, FileExtMatch, VersionString
+from scmtools import RepoConfig, LoadRepoConfig, FileExtMatch, VersionString, FileExt
 
 class CommitContext(object):
   def __init__(self):
@@ -64,8 +64,30 @@ class CommitChecker(object):
         continue
       res.append(fn)
     return res
-  # -- end of getChangedFilenames
-      
+  # --end--
+
+  def isBinaryFileByConfig(self, repoPath, path):
+    cf = self.cf
+    ext = FileExt(path)
+
+    if ext == '':
+      return True
+
+    exts = cf.get3(repoPath, path, 'binary-ext')
+    if FileExtMatch(exts, ext):
+      return True
+
+    return False
+  # --end--
+
+
+  def isBinaryFile(self, path):
+    if self.isBinaryFileByConfig(self.ctx.repoPath, path):
+      return True
+    # TODO: check svn props
+    return False
+  # --end--
+
   def run(self):
     self.setup()
 
@@ -75,7 +97,19 @@ class CommitChecker(object):
     # -- create changed files list
     fns = self.getChangedFilenames()
     for fn in fns:
-      Check__CoreFile(self.ctx, fn)
+      self.Check__CoreFile(fn)
+  # --end--
+
+
+  def Check__FileCore(self, path):
+    ctx = self.ctx
+    txn = ctx.txn
+
+    if self.isBinaryFile(path):
+      # binary file is passed directly.
+      return
+  # --end--
+
 
   def Check__CommitMessage(self):
     ctx = self.ctx
@@ -89,10 +123,7 @@ class CommitChecker(object):
       ctx.o('MSG-O2 真的没什么可说的吗? 消息长度要大于10')
       ctx.e('MSG-E2 提交消息太短')
       return
-
-
-# ---- end of CommitChecker
-
+# ----end----
 
 def Main():
   print '= %s (v%s)' % (__PROGNAME__, __VERSION__)
