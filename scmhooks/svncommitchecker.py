@@ -31,8 +31,7 @@ class CommitContext(object):
       return True
     else:
       return False
-# ---- end of CommitContext
-
+# --CEND--
 
 
 class CommitChecker(object):
@@ -50,6 +49,7 @@ class CommitChecker(object):
     self.ctx.txnid =  self.txnid
     self.ctx.txn = self.txn
     self.ctx.cf = self.cf
+  # --end--
 
   def getChangedFilenames(self):
     txn = self.txn
@@ -66,20 +66,24 @@ class CommitChecker(object):
     return res
   # --end--
 
-  def isBinaryFileByConfig(self, repoPath, path):
+  def checkFileConfig(self, opt, repoPath, path):
     cf = self.cf
     ext = FileExt(path)
 
     if ext == '':
       return True
 
-    exts = cf.get3('binary-ext', repoPath, path)
-    if FileExtMatch(exts, ext):
-      return True
-
-    return False
+    exts = cf.get3(opt, repoPath, path)
+    return FileExtMatch(exts, ext)
   # --end--
 
+  def isBinaryFileByConfig(self, repoPath, path):
+    return self.checkFileConfig('binary-ext', repoPath, path)
+  # --end--
+
+  def isSourceFileByConfig(self, repoPath, path):
+    return self.checkFileConfig('source-ext', repoPath, path)
+  # --end--
 
   def isBinaryFile(self, path):
     if self.isBinaryFileByConfig(self.ctx.repoPath, path):
@@ -98,18 +102,67 @@ class CommitChecker(object):
     fns = self.getChangedFilenames()
     for fn in fns:
       self.Check__CoreFile(fn)
+
+    if self.ctx.isOK():
+      return
+      
+    print '--ERRORS--'
+    print '\n'.join(ctx.errors())
+    print '\n--OUTLINES--'
+    print '\n'.join(ctx.outlines())
+    sys.exit(1)
   # --end--
 
 
   def Check__FileCore(self, path):
     ctx = self.ctx
     txn = ctx.txn
+    cf = self.cf
 
     if self.isBinaryFile(path):
       # binary file is passed directly.
       return
+
+    if cf.get3('check-utf8', repoPath, path):
+      if self.isSourceFileByConfig(repoPath, path):
+        self.Check__UTF8(path)
+
+        if cf.get3('check-bom', repoPath, path):
+          self.Check__BOM(path)
   # --end--
 
+  def Check__BOM(self, path):
+    ctx = self.ctx
+    content = self.ctx.txn.cat(path)
+    upath = path.encode('utf8')
+    if content[:3] == '\xef\xbb\xbf':
+      ctx.e("BOM-E1 %s 含有Unicode BOM头标志" % upath)
+      ctx.o("BOM-O1 请清除相关文件的BOM头")
+    return
+
+  # --end--
+
+  def Check__UTF8(self, path):
+    ctx = self.ctx
+    content = self.ctx.txn.cat(path)
+
+    linenum = 1
+    lines = []
+    texts = content.split("\n")
+
+    for line in texts:
+      try:
+        line.decode('utf8')
+      except UnicodeDecodeError, e:
+        lines.append(str(linenum))
+      linenum += 1
+
+    upath = path.encode("utf8")
+    if lines:
+      ctx.e("UTF-E1 %s 包含非法的UTF8字符(文件必须是UTF8编码)" % (upath))
+      ctx.e("UTF-E1 %s 存在问题的行: %s" % (upath, ",".join(lines)))
+      ctx.o("UTF-O1 请仔细检查修正文件编码问题")
+  # --end--
 
   def Check__CommitMessage(self):
     ctx = self.ctx
@@ -123,7 +176,7 @@ class CommitChecker(object):
       ctx.o('MSG-O2 真的没什么可说的吗? 消息长度要大于10')
       ctx.e('MSG-E2 提交消息太短')
       return
-# ----end----
+# --CEND--
 
 def Main():
   print '= %s (v%s)' % (__PROGNAME__, __VERSION__)
