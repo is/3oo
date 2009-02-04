@@ -3,7 +3,6 @@ import pysvn
 from mock import Mock
 
 from svncommitchecker import CommitContext
-from svncommitchecker import Check__CommitMessage
 from svncommitchecker import CommitChecker
 
 class DummyClass(object): pass
@@ -59,20 +58,28 @@ class MessageCheckerTests(unittest.TestCase):
     return ctx
   # --end--
 
+  def mockChecker(self, msg):
+    checker = CommitChecker(None, None, None)
+    checker.ctx = self.createContextByMessage(msg)
+    return checker
+
   def testOkMessage(self):
-    ctx = self.createContextByMessage(u'hello-world, this is a good message')
-    Check__CommitMessage(ctx)
-    assert ctx.isOK()
+    cc = self.mockChecker(u'hello-world, this is a good message')
+    cc.Check__CommitMessage()
+    assert cc.ctx.isOK()
 
   def testEmptyMessage(self):
-    ctx = self.createContextByMessage(u'')
-    Check__CommitMessage(ctx)
+    cc = self.mockChecker(u'')
+    cc.Check__CommitMessage()
+
+    ctx = cc.ctx
     assert not ctx.isOK() 
     assert ctx.errors[0].split()[0] == 'MSG-E1'
 
   def testShortenMessage(self):
-    ctx = self.createContextByMessage(u'shortmsg')
-    Check__CommitMessage(ctx)
+    cc = self.mockChecker(u'shortmsg')
+    cc.Check__CommitMessage()
+    ctx = cc.ctx
     assert not ctx.isOK()
     assert ctx.errors[0].split()[0] == 'MSG-E2'
 # ----end----
