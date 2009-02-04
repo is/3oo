@@ -41,7 +41,7 @@ class CommitChecker(object):
     self.txnid = txnid
 
   def setup(self):
-    self.txn = pysvn.Transation(self.repoPath, self.txnid)
+    self.txn = pysvn.Transaction(self.repoPath, self.txnid)
 
     # Create context
     self.ctx = CommitContext()
@@ -94,6 +94,7 @@ class CommitChecker(object):
 
   def run(self):
     self.setup()
+    ctx = self.ctx
 
     # -- commit level checks
     self.Check__CommitMessage()
@@ -101,23 +102,25 @@ class CommitChecker(object):
     # -- create changed files list
     fns = self.getChangedFilenames()
     for fn in fns:
-      self.Check__CoreFile(fn)
+      self.Check__FileCore(fn)
 
-    if self.ctx.isOK():
+    if ctx.isOK():
       return
       
-    print '--ERRORS--'
-    print '\n'.join(ctx.errors())
-    print '\n--OUTLINES--'
-    print '\n'.join(ctx.outlines())
+    print >> sys.stderr, '--ERRORS--'
+    print >> sys.stderr, '\n'.join(ctx.errors)
+    print >> sys.stderr, '\n--OUTLINES--'
+    print >> sys.stderr, '\n'.join(ctx.outlines)
+
     sys.exit(1)
   # --end--
 
 
   def Check__FileCore(self, path):
+    cf = self.cf
     ctx = self.ctx
     txn = ctx.txn
-    cf = self.cf
+    repoPath = ctx.repoPath
 
     if self.isBinaryFile(path):
       # binary file is passed directly.
@@ -161,7 +164,7 @@ class CommitChecker(object):
     if lines:
       ctx.e("UTF-E1 %s 包含非法的UTF8字符(文件必须是UTF8编码)" % (upath))
       ctx.e("UTF-E1 %s 存在问题的行: %s" % (upath, ",".join(lines)))
-      ctx.o("UTF-O1 请仔细检查修正文件编码问题")
+      ctx.o("UTF-O1 请仔细检查并修正文件编码问题")
   # --end--
 
   def Check__CommitMessage(self):
@@ -190,7 +193,7 @@ def Main():
     sys.exit(1)
   
   cf =  LoadRepoConfig(sys.argv[1])
-  checker = CommitCheckerContext(cf, sys.argv[2], sys.argv[3])
+  checker = CommitChecker(cf, sys.argv[2], sys.argv[3])
   checker.run()
   sys.exit(0)
 # ---- end of Main
