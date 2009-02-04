@@ -8,7 +8,7 @@ class RepoConfig(object):
     self.defaults = {}
     self.autoUpdatePath = True
 
-  def get3(self, repo, path, opt): 
+  def get3(self, opt, repo, path): 
     if not (repo, opt) in self.repos:
       return self.defaults.get(opt)
 
@@ -19,7 +19,7 @@ class RepoConfig(object):
 
     return self.defaults.get(opt)
 
-  def set3(self, repo, path, opt, value):
+  def set3(self, opt, repo, path, value):
     if not (repo, opt) in self.repos:
       repocfg = {}
       repocfg[path] = value

@@ -122,9 +122,9 @@ class CommitCheckerTests(unittest.TestCase):
     R0 = '/R0'
     cf = RepoConfig()
     cf.setDefault('binary-ext', 'obj,lib,html,js')
-    cf.set3(R0, 'abc/', 'binary-ext', 'rmvb,avi,txt')
-    cf.set3(R0, 'abc/def/', 'binary-ext', 'sln,lib')
-    cf.set3(R0, 'abcdef/', 'binary-ext', '+')
+    cf.set3('binary-ext', R0, 'abc/', 'rmvb,avi,txt')
+    cf.set3('binary-ext', R0, 'abc/def/', 'sln,lib')
+    cf.set3('binary-ext', R0, 'abcdef/', '+')
 
     cc = self.mockChecker2(R0, cf)
     assert cc.isBinaryFileByConfig(R0, 'abc/def.avi') == True

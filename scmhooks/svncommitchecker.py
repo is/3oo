@@ -73,7 +73,7 @@ class CommitChecker(object):
     if ext == '':
       return True
 
-    exts = cf.get3(repoPath, path, 'binary-ext')
+    exts = cf.get3('binary-ext', repoPath, path)
     if FileExtMatch(exts, ext):
       return True
 

@@ -66,10 +66,10 @@ class RepoConfigBaseTests(unittest.TestCase):
     o0 = 'encoding'
 
     rs = repo.repos
-    repo.set3(r0, p0, o0, 'gbk')
+    repo.set3(o0, r0, p0, 'gbk')
     assert rs[r0, o0][1][p0] == 'gbk'
 
-    repo.set3(r0, p1, o0, 'utf8')
+    repo.set3(o0, r0, p1, 'utf8')
     assert not rs[r0, o0][1][p0] == 'utf8'
     assert rs[r0, o0][1][p1] == 'utf8'
 
@@ -80,10 +80,10 @@ class RepoConfigBaseTests(unittest.TestCase):
     r0 = "/R0"
     opt = "encoding"
 
-    repo.set3(r0, 'abc/', opt, 'utf8')
-    repo.set3(r0, 'abcdef/', opt, 'utf8')
-    repo.set3(r0, 'abc/def/', opt, 'utf8')
-    repo.set3(r0, '', opt, 'gbk')
+    repo.set3(opt, r0, 'abc/', 'utf8')
+    repo.set3(opt, r0, 'abcdef/', 'utf8')
+    repo.set3(opt, r0, 'abc/def/', 'utf8')
+    repo.set3(opt, r0, '', 'gbk')
     repo.updatePaths()
     v = repo.repos.get((r0, opt))
     assert v[0] == ['abcdef/', 'abc/def/', 'abc/', '']
@@ -93,10 +93,10 @@ class RepoConfigBaseTests(unittest.TestCase):
     r0 = "/R0"
     opt = "encoding"
 
-    repo.set3(r0, 'abc/', opt, 'utf8')
-    repo.set3(r0, 'abcdef/', opt, 'utf8')
-    repo.set3(r0, 'abc/def/', opt, 'utf8')
-    repo.set3(r0, '', opt, 'gbk')
+    repo.set3(opt, r0, 'abc/', 'utf8')
+    repo.set3(opt, r0, 'abcdef/', 'utf8')
+    repo.set3(opt, r0, 'abc/def/', 'utf8')
+    repo.set3(opt, r0, '', 'gbk')
     v = repo.repos.get((r0, opt))
     assert v[0] == ['abcdef/', 'abc/def/', 'abc/', '']
 
@@ -110,20 +110,20 @@ class RepoConfigBaseTests(unittest.TestCase):
     opt2 = 'encoding2'
 
     repo.setDefault(opt, 'v0')
-    repo.set3(r0, 'abc/', opt, 'v1')
-    repo.set3(r0, 'abcdef/', opt, 'v2')
-    repo.set3(r0, 'abc/def/', opt, 'v3')
-    repo.set3(r1, '', opt, 'v4')
+    repo.set3(opt, r0, 'abc/', 'v1')
+    repo.set3(opt, r0, 'abcdef/', 'v2')
+    repo.set3(opt, r0, 'abc/def/', 'v3')
+    repo.set3(opt, r1, '', 'v4')
 
-    assert repo.get3(r0, '', opt2) == None
-    assert repo.get3(r2, 'abc/', opt) == 'v0'
-    assert repo.get3(r1, 'abc/', opt) == 'v4'
-    assert repo.get3(r0, 'abc/def', opt) == 'v1'
-    assert repo.get3(r0, 'abc/def/abc', opt) == 'v3'
-    assert repo.get3(r0, 'abcdef/abc', opt) == 'v2'
-    assert repo.get3(r0, 'def/', opt) == 'v0'
-    assert repo.get3(r0, 'abcdef/abc', opt2) == None
-    assert repo.get3(r2, 'abc/def', opt2) == None
+    assert repo.get3(opt2, r0, '') == None
+    assert repo.get3(opt, r2, 'abc/') == 'v0'
+    assert repo.get3(opt, r1, 'abc/') == 'v4'
+    assert repo.get3(opt, r0, 'abc/def') == 'v1'
+    assert repo.get3(opt, r0, 'abc/def/abc') == 'v3'
+    assert repo.get3(opt, r0, 'abcdef/abc') == 'v2'
+    assert repo.get3(opt, r0, 'def/') == 'v0'
+    assert repo.get3(opt2, r0, 'abcdef/abc') == None
+    assert repo.get3(opt2, r2, 'abc/def') == None
 
   def testLoadRepoConfig(self):
     # -- create test repo config --
@@ -142,10 +142,10 @@ def setup(cf):
   opt2 = 'encoding2'
 
   cf.setDefault(opt, 'v0')
-  cf.set3(r0, 'abc/', opt, 'v1')
-  cf.set3(r0, 'abcdef/', opt, 'v2')
-  cf.set3(r0, 'abc/def/', opt, 'v3')
-  cf.set3(r1, '', opt, 'v4')
+  cf.set3(opt, r0, 'abc/', 'v1')
+  cf.set3(opt, r0, 'abcdef/', 'v2')
+  cf.set3(opt, r0, 'abc/def/', 'v3')
+  cf.set3(opt, r1, '', 'v4')
 # vim: ts=2 sts=2 expandtab ai
 """)
     fout.close()
@@ -159,15 +159,15 @@ def setup(cf):
     opt2 = 'encoding2'
 
 
-    assert repo.get3(r0, '', opt2) == None
-    assert repo.get3(r2, 'abc/', opt) == 'v0'
-    assert repo.get3(r1, 'abc/', opt) == 'v4'
-    assert repo.get3(r0, 'abc/def', opt) == 'v1'
-    assert repo.get3(r0, 'abc/def/abc', opt) == 'v3'
-    assert repo.get3(r0, 'abcdef/abc', opt) == 'v2'
-    assert repo.get3(r0, 'def/', opt) == 'v0'
-    assert repo.get3(r0, 'abcdef/abc', opt2) == None
-    assert repo.get3(r2, 'abc/def', opt2) == None
+    assert repo.get3(opt2, r0, '') == None
+    assert repo.get3(opt, r2, 'abc/') == 'v0'
+    assert repo.get3(opt, r1, 'abc/') == 'v4'
+    assert repo.get3(opt, r0, 'abc/def') == 'v1'
+    assert repo.get3(opt, r0, 'abc/def/abc') == 'v3'
+    assert repo.get3(opt, r0, 'abcdef/abc') == 'v2'
+    assert repo.get3(opt, r0, 'def/') == 'v0'
+    assert repo.get3(opt2, r0, 'abcdef/abc') == None
+    assert repo.get3(opt2, r2, 'abc/def') == None
 
     try:
       os.unlink('repo_cf_test0.py')
