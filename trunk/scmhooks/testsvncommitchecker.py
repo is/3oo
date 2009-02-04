@@ -4,6 +4,7 @@ from mock import Mock
 
 from svncommitchecker import CommitContext
 from svncommitchecker import CommitChecker
+from scmtools import RepoConfig
 
 class DummyClass(object): pass
 
@@ -92,7 +93,8 @@ class CommitCheckerTests(unittest.TestCase):
     ctx.txn.changed = Mock()
     ctx.txn.changed.return_value = changed
     return ctx
-
+    # --end--
+  
   def testChangeFilenames(self):
     ctx = self.mockContext0({
       'is/a': ('D', pysvn.node_kind.file, 1, 0),
@@ -105,5 +107,32 @@ class CommitCheckerTests(unittest.TestCase):
     cc.ctx = ctx
     cc.txn = ctx.txn
     assert set(cc.getChangedFilenames()) == set(['is/b', 'is/d'])
+  # --end--
+
+  def mockChecker2(self, repoPath, cf):
+    cc = CommitChecker(cf, repoPath, None)
+    ctx = DummyClass()
+    cc.ctx = ctx
+    ctx.repoPath = repoPath
+    cc.cf = cf
+    return cc
+  # --end--
+
+  def testIsBinaryFileByConfig(self):
+    R0 = '/R0'
+    cf = RepoConfig()
+    cf.setDefault('binary-ext', 'obj,lib,html,js')
+    cf.set3(R0, 'abc/', 'binary-ext', 'rmvb,avi,txt')
+    cf.set3(R0, 'abc/def/', 'binary-ext', 'sln,lib')
+    cf.set3(R0, 'abcdef/', 'binary-ext', '+')
+
+    cc = self.mockChecker2(R0, cf)
+    assert cc.isBinaryFileByConfig(R0, 'abc/def.avi') == True
+    assert cc.isBinaryFileByConfig(R0, 'abc/def.java') == False
+    assert cc.isBinaryFileByConfig(R0, 'abcdef/test.abc') == True
+    assert cc.isBinaryFileByConfig(R0, 'abc/defhgi') == True
+    assert cc.isBinaryFileByConfig(R0, 'abc/def/ssh.cpp') == False
+    assert cc.isBinaryFileByConfig(R0, 'abc/def/ssh.lib') == True
+# --cend--
 
 # vim: ts=2 sts=2 expandtab ai
