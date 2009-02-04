@@ -34,18 +34,6 @@ class CommitContext(object):
 # ---- end of CommitContext
 
 
-def Check__CommitMessage(ctx):
-  mesg = ctx.txn.revpropget("svn:log")
-  if len(mesg) == 0:
-    ctx.o('MSG-O1 请填写完整的提交消息')
-    ctx.e('MSG-E1 提交消息为空')
-    return
-
-  if len(mesg) < 10:
-    ctx.o('MSG-O2 真的没什么可说的吗? 消息长度要大于10')
-    ctx.e('MSG-E2 提交消息太短')
-    return
-
 
 class CommitChecker(object):
   def __init__(self, cf, repoPath, txnid):
@@ -82,12 +70,27 @@ class CommitChecker(object):
     self.setup()
 
     # -- commit level checks
-    Check__CommitMessage(self.ctx)
+    self.Check__CommitMessage()
 
     # -- create changed files list
     fns = self.getChangedFilenames()
     for fn in fns:
       Check__CoreFile(self.ctx, fn)
+
+  def Check__CommitMessage(self):
+    ctx = self.ctx
+    mesg = ctx.txn.revpropget("svn:log")
+    if len(mesg) == 0:
+      ctx.o('MSG-O1 请填写完整的提交消息')
+      ctx.e('MSG-E1 提交消息为空')
+      return
+
+    if len(mesg) < 10:
+      ctx.o('MSG-O2 真的没什么可说的吗? 消息长度要大于10')
+      ctx.e('MSG-E2 提交消息太短')
+      return
+
+
 # ---- end of CommitChecker
 
 
