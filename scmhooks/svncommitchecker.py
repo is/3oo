@@ -57,24 +57,27 @@ class CommitChecker(object):
 
   def defeatMailReport(self):
     cf = self.cf
-
-    if not cf.get3('defeat-email', ctx.repoPath, ''):
-      return
-
     ctx = self.ctx
+
     txn = ctx.txn
     repoPath = ctx.repoPath.encode('utf8')
 
-    author = txn.revproplists()['svn:author'].encode('utf8')
-    log = txn.revproplists()['svn:log'].encode('utf8')
+    if not cf.get3('defeat-email', ctx.repoPath, ''):
+      return
+ 
+    revprops = txn.revproplist()
+    author = revprops['svn:author'].encode('utf8')
+    log = revprops['svn:log'].encode('utf8')
     txnid = ctx.txnid
 
     subject = "defeat commit %s - %s/%s" % (author, repoPath, txnid)
-    sender = cf.get3('email-from', ctx.repoPath, '')
-    receiptor = cf.get3('email-to', ctx.repoPath, '')
+    sender = cf.get3('defeat-email-from', ctx.repoPath, '')
+    receiptor = cf.get3('defeat-email-to', ctx.repoPath, '')
 
     if not sender or not receiptor:
       return
+
+    bodys = []
 
     headers = [
       'From: %s' % sender,
@@ -84,22 +87,22 @@ class CommitChecker(object):
       'MIME-Version: 1.0',
       'Content-Transfer-Encoding: 8bit',
     ]
-    headers = '\n'.join(headers)
+    bodys.append(headers)
+
 
     info0 = ['---- COMMIT ----',
       'Repository: %s' % repoPath,
       'Author: %s' % author,
-      'Message: %s' % message,
+      'Message: %s' % log,
       'TXNID: %s' % txnid,
     ]
+    bodys.append(info0)
 
-    info0 = '\n'.join(info0)
 
     finfos = ['---- FILES ----']
     changed = txn.changed()
     fns = changed.keys()
     fns.sort()
-
     for fn in fns:
       finfo = changed[fn]
 
@@ -108,24 +111,27 @@ class CommitChecker(object):
       elif finfo[1] == pysvn.node_kind.dir:
         s1 = 'D'
       elif finfo[1] == pysvn.node_kind.none:
-        sl = 'N'
+        s1 = 'N'
       else:
-        sl = 'U'
+        s1 = 'U'
 
       finfos.append('%s %s %s %s - %s' % (
-        finfo[0], sl, finfo[2], finfo[3], fn.encode('utf8')))
-    finfos = '\n'.join(finfos)    
+        finfo[0], s1, finfo[2], finfo[3], fn.encode('utf8')))
+    bodys.append(finfos)
 
     errors = ['---- ERRORS ----']
     errors.extend(ctx.errors)
+    bodys.append(errors)
 
     debugs = ['---- DEBUGS ----']
     debugs.extend(ctx.debugs)
+    bodys.append(debugs)
 
     outlines = ['---- OUTLINES ----']
-    outlines.exntend(ctx.outlines)
+    outlines.extend(ctx.outlines)
+    bodys.append(outlines)
 
-    body = '\n\n'.join((headers, info0, finfos, outlines, errors, debugs))
+    body = '\n\n'.join(['\n'.join(x) for x in bodys])
 
     fout = os.popen('/usr/sbin/sendmail -F%s %s' % (sender, receiptor), 'w')
     fout.write(body)
@@ -194,6 +200,12 @@ class CommitChecker(object):
 
     self.defeatMailReport()
 
+    adminEmail = self.cf.get3('admin-email', ctx.repoPath, '')
+    if adminEmail:
+      print >> sys.stderr
+      print >> sys.stderr, '--NOTE--'
+      print >> sys.stderr, '如果有任何意见或者建议，请联系 %s' % adminEmail
+
     sys.exit(1)
   # --end--
 
@@ -221,7 +233,6 @@ class CommitChecker(object):
     upath = path.encode('utf8')
     if content[:3] == '\xef\xbb\xbf':
       ctx.e("BOM-E1 %s 含有Unicode BOM头标志" % upath)
-      ctx.e("------")
       ctx.o("BOM-O1 请清除相关文件的BOM头")
     return
 
@@ -246,7 +257,6 @@ class CommitChecker(object):
     if lines:
       ctx.e("UTF-E1 %s 包含非法的UTF8字符(文件必须是UTF8编码)" % (upath))
       ctx.e("UTF-E1 %s 存在问题的行: %s" % (upath, ",".join(lines)))
-      ctx.e("------")
       ctx.o("UTF-O1 请仔细检查并修正文件编码问题")
   # --end--
 
@@ -256,13 +266,11 @@ class CommitChecker(object):
     if len(mesg) == 0:
       ctx.o('MSG-O1 请填写完整的提交消息')
       ctx.e('MSG-E1 提交消息为空')
-      ctx.e('------')
       return
 
     if len(mesg) < 10:
       ctx.o('MSG-O2 真的没什么可说的吗? 消息长度要大于10')
       ctx.e('MSG-E2 提交消息太短')
-      ctx.e('------')
       return
 # --CEND--
 
