@@ -55,6 +55,82 @@ class CommitChecker(object):
     self.ctx.cf = self.cf
   # --end--
 
+  def defeatMailReport(self):
+    cf = self.cf
+
+    if not cf.get3('defeat-email', ctx.repoPath, ''):
+      return
+
+    ctx = self.ctx
+    txn = ctx.txn
+    repoPath = ctx.repoPath.encode('utf8')
+
+    author = txn.revproplists()['svn:author'].encode('utf8')
+    log = txn.revproplists()['svn:log'].encode('utf8')
+    txnid = ctx.txnid
+
+    subject = "defeat commit %s - %s/%s" % (author, repoPath, txnid)
+    sender = cf.get3('email-from', ctx.repoPath, '')
+    receiptor = cf.get3('email-to', ctx.repoPath, '')
+
+    if not sender or not receiptor:
+      return
+
+    headers = [
+      'From: %s' % sender,
+      'To: %s' % receiptor,
+      'Subject: %s' % subject,
+      'Content-Type: text/plain; charset="utf-8"',
+      'MIME-Version: 1.0',
+      'Content-Transfer-Encoding: 8bit',
+    ]
+    headers = '\n'.join(headers)
+
+    info0 = ['---- COMMIT ----',
+      'Repository: %s' % repoPath,
+      'Author: %s' % author,
+      'Message: %s' % message,
+      'TXNID: %s' % txnid,
+    ]
+
+    info0 = '\n'.join(info0)
+
+    finfos = ['---- FILES ----']
+    changed = txn.changed()
+    fns = changed.keys()
+    fns.sort()
+
+    for fn in fns:
+      finfo = changed[fn]
+
+      if finfo[1] == pysvn.node_kind.file:
+        s1 = 'F'
+      elif finfo[1] == pysvn.node_kind.dir:
+        s1 = 'D'
+      elif finfo[1] == pysvn.node_kind.none:
+        sl = 'N'
+      else:
+        sl = 'U'
+
+      finfos.append('%s %s %s %s - %s' % (
+        finfo[0], sl, finfo[2], finfo[3], fn.encode('utf8')))
+    finfos = '\n'.join(finfos)    
+
+    errors = ['---- ERRORS ----']
+    errors.extend(ctx.errors)
+
+    debugs = ['---- DEBUGS ----']
+    debugs.extend(ctx.debugs)
+
+    outlines = ['---- OUTLINES ----']
+    outlines.exntend(ctx.outlines)
+
+    body = '\n\n'.join((headers, info0, finfos, outlines, errors, debugs))
+
+    fout = os.popen('/usr/sbin/sendmail -F%s %s' % (sender, receiptor), 'w')
+    fout.write(body)
+    fout.close()
+
   def getChangedFilenames(self):
     txn = self.txn
 
@@ -70,7 +146,7 @@ class CommitChecker(object):
     return res
   # --end--
 
-  def checkFileConfig(self, opt, repoPath, path):
+  def checkFileExtConfig(self, opt, repoPath, path):
     cf = self.cf
     ext = FileExt(path)
 
@@ -82,11 +158,11 @@ class CommitChecker(object):
   # --end--
 
   def isBinaryFileByConfig(self, repoPath, path):
-    return self.checkFileConfig('binary-ext', repoPath, path)
+    return self.checkFileExtConfig('binary-ext', repoPath, path)
   # --end--
 
   def isSourceFileByConfig(self, repoPath, path):
-    return self.checkFileConfig('source-ext', repoPath, path)
+    return self.checkFileExtConfig('source-ext', repoPath, path)
   # --end--
 
   def isBinaryFile(self, path):
@@ -116,9 +192,10 @@ class CommitChecker(object):
     print >> sys.stderr, '\n--OUTLINES--'
     print >> sys.stderr, '\n'.join(ctx.outlines)
 
+    self.defeatMailReport()
+
     sys.exit(1)
   # --end--
-
 
   def Check__FileCore(self, path):
     cf = self.cf
