@@ -3,7 +3,7 @@
 # -- Subversion Pre Commit Hook --
 #
 
-__VERSION__ = '0.0.1.0'
+__VERSION__ = '0.0.1.1'
 __PROGNAME__ = 'IS Subversion Precommit Checker'
 
 import sys, os
@@ -182,14 +182,14 @@ class CommitChecker(object):
 # --CEND--
 
 def Main():
-  print '= %s (v%s)' % (__PROGNAME__, __VERSION__)
-  print '  python-%s, pysvn-%s, subversion-%s' % (
+  print >>sys.stderr, '= %s (v%s)' % (__PROGNAME__, __VERSION__)
+  print >>sys.stderr, '  python-%s, pysvn-%s, subversion-%s' % (
     VersionString(sys.version_info[:3]),
     VersionString(pysvn.version), 
     VersionString(pysvn.svn_version[:3]))
   if len(sys.argv) < 4:
-    print '! is-precommit-checker need three command line arguments:'
-    print '!   python is-precommit {config_name} {repo_path} {txnid}'
+    print >>sys.stderr, '! is-precommit-checker need three command line arguments:'
+    print >>sys.stderr, '!   python is-precommit {config_name} {repo_path} {txnid}'
     sys.exit(1)
   
   cf =  LoadRepoConfig(sys.argv[1])
