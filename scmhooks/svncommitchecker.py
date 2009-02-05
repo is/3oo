@@ -13,9 +13,13 @@ from scmtools import RepoConfig, LoadRepoConfig, FileExtMatch, VersionString, Fi
 
 class CommitContext(object):
   def __init__(self):
+    self.debugs = []
     self.errors = []
     self.warnings = []
     self.outlines = set()
+
+  def d(self, msg):
+    self.debugs.append(msg)
 
   def e(self, msg):
     self.errors.append(msg)
@@ -140,6 +144,7 @@ class CommitChecker(object):
     upath = path.encode('utf8')
     if content[:3] == '\xef\xbb\xbf':
       ctx.e("BOM-E1 %s 含有Unicode BOM头标志" % upath)
+      ctx.e("------")
       ctx.o("BOM-O1 请清除相关文件的BOM头")
     return
 
@@ -164,6 +169,7 @@ class CommitChecker(object):
     if lines:
       ctx.e("UTF-E1 %s 包含非法的UTF8字符(文件必须是UTF8编码)" % (upath))
       ctx.e("UTF-E1 %s 存在问题的行: %s" % (upath, ",".join(lines)))
+      ctx.e("------")
       ctx.o("UTF-O1 请仔细检查并修正文件编码问题")
   # --end--
 
@@ -173,11 +179,13 @@ class CommitChecker(object):
     if len(mesg) == 0:
       ctx.o('MSG-O1 请填写完整的提交消息')
       ctx.e('MSG-E1 提交消息为空')
+      ctx.e('------')
       return
 
     if len(mesg) < 10:
       ctx.o('MSG-O2 真的没什么可说的吗? 消息长度要大于10')
       ctx.e('MSG-E2 提交消息太短')
+      ctx.e('------')
       return
 # --CEND--
 

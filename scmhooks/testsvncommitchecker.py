@@ -11,6 +11,9 @@ class DummyClass(object): pass
 class CommitContextTests(unittest.TestCase):
   def testBase0(self):
     ctx = CommitContext()
+    ctx.d('debug0')
+    ctx.d('debug1')
+    
     ctx.e('error0')
     ctx.e('error1')
 
@@ -22,6 +25,7 @@ class CommitContextTests(unittest.TestCase):
     ctx.o('ierror1')
     ctx.o('ierror0')
 
+    assert ctx.debugs == ['debug0', 'debug1']
     assert ctx.errors == ['error0', 'error1']
     assert ctx.warnings == ['error2', 'error2', 'error3']
     assert ctx.outlines == set(('ierror0', 'ierror1'))
