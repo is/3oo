@@ -66,11 +66,11 @@ class CommitChecker(object):
       return
  
     revprops = txn.revproplist()
-    author = revprops['svn:author'].encode('utf8')
-    log = revprops['svn:log'].encode('utf8')
+    author = revprops['svn:author']
+    log = revprops['svn:log']
     txnid = ctx.txnid
 
-    subject = "defeat commit %s - %s/%s" % (author, repoPath, txnid)
+    subject = "defeat commit %s - %s" % (author, repoPath)
     sender = cf.get3('defeat-email-from', ctx.repoPath, '')
     receiptor = cf.get3('defeat-email-to', ctx.repoPath, '')
 
@@ -276,10 +276,11 @@ class CommitChecker(object):
 
 def Main():
   print >>sys.stderr, '= %s (v%s)' % (__PROGNAME__, __VERSION__)
-  print >>sys.stderr, '  python-%s, pysvn-%s, subversion-%s' % (
+  print >>sys.stderr, '- python-%s, pysvn-%s, subversion-%s' % (
     VersionString(sys.version_info[:3]),
     VersionString(pysvn.version), 
     VersionString(pysvn.svn_version[:3]))
+
   if len(sys.argv) < 4:
     print >>sys.stderr, '! is-precommit-checker need three command line arguments:'
     print >>sys.stderr, '!   python is-precommit {config_name} {repo_path} {txnid}'
